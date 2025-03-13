@@ -1,22 +1,19 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuid } from 'uuid';
 import { 
   Call, 
   createCallSchema, 
   updateCallSchema, 
-  callQuerySchema
+  callQuerySchema 
 } from '../models/Call';
 import { 
   getItem, 
   putItem, 
   updateItem, 
-  queryItems,
+  queryItems, 
   CALLS_TABLE 
 } from '../services/dynamoDbService';
-import { 
-  getRecordingUrl as s3GetRecordingUrl,
-  RECORDINGS_BUCKET 
-} from '../services/s3Service';
+import { getRecordingUrl as s3GetRecordingUrl } from '../services/s3Service';
 
 // Helper function to format response
 const formatResponse = (statusCode: number, body: any): APIGatewayProxyResult => {
@@ -47,7 +44,7 @@ export const saveMetadata = async (event: APIGatewayProxyEvent): Promise<APIGate
     }
     
     // Create call object
-    const callId = uuidv4();
+    const callId = uuid();
     const call: Call = {
       ...validationResult.data,
       id: callId,

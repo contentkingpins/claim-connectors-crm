@@ -1,12 +1,10 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuid } from 'uuid';
 import { 
   Lead, 
   createLeadSchema, 
   updateLeadSchema, 
-  leadQuerySchema,
-  LeadStatus,
-  LeadSource
+  leadQuerySchema 
 } from '../models/Lead';
 import { 
   getItem, 
@@ -49,7 +47,7 @@ export const create = async (event: APIGatewayProxyEvent): Promise<APIGatewayPro
     const now = new Date().toISOString();
     const lead: Lead = {
       ...validationResult.data,
-      id: uuidv4(),
+      id: uuid(),
       createdAt: now,
       updatedAt: now,
     };
