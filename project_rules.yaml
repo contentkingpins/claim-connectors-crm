@@ -1,0 +1,97 @@
+project_name: Claim Connector CRM
+description: >
+  This project is a web-based CRM for claim connectors using AWS services.
+  It should integrate with Amazon Connect, store leads in DynamoDB, and allow document uploads to S3.
+
+development_steps:
+  - step: "Define AWS Architecture & Services"
+    tasks:
+      - "Generate a high-level AWS architecture diagram."
+      - "Define IAM roles for secure service access."
+      - "Document service limits and quotas for scaling considerations."
+    checkpoints:
+      - "Verify AWS services interact correctly (S3, DynamoDB, Lambda, API Gateway, Connect)."
+      - "Confirm security best practices are implemented for each service."
+      - "Review cost estimates for the proposed architecture."
+
+  - step: "Backend API Development"
+    tasks:
+      - "Develop REST API endpoints for lead management (CRUD)."
+      - "Implement S3 signed URLs for secure document uploads."
+      - "Create Lambda functions for business logic processing."
+    check_and_fix:
+      - "Ensure all API endpoints have proper input validation."
+      - "Run unit tests to verify database transactions work."
+      - "Validate error handling and response formatting."
+    coding_standards:
+      - "Use TypeScript for all Lambda functions."
+      - "Follow RESTful API design principles."
+      - "Implement comprehensive logging for debugging."
+
+  - step: "Frontend Development"
+    tasks:
+      - "Create React components for lead tracking and document management."
+      - "Integrate AWS Amplify for API calls and authentication."
+      - "Develop responsive UI for mobile and desktop use."
+    check_and_fix:
+      - "Ensure the frontend properly syncs with backend API."
+      - "Validate that UI handles large datasets with pagination."
+      - "Test across multiple browsers and screen sizes."
+    coding_standards:
+      - "Use React functional components with hooks."
+      - "Implement proper state management with Redux or Context API."
+      - "Follow accessibility guidelines (WCAG 2.1)."
+
+  - step: "AWS Connect Integration"
+    tasks:
+      - "Store call metadata in DynamoDB with timestamps."
+      - "Auto-save call recordings in S3 with proper permissions."
+      - "Create Lambda triggers for post-call processing."
+    check_and_fix:
+      - "Test that recordings are retrievable with correct lead associations."
+      - "Verify call metadata is properly indexed for efficient queries."
+      - "Ensure compliance with call recording regulations."
+
+  - step: "Testing & Deployment"
+    tasks:
+      - "Create CI/CD pipeline using AWS CodePipeline."
+      - "Implement automated testing for all components."
+      - "Set up monitoring and alerting with CloudWatch."
+    check_and_fix:
+      - "Verify all tests pass before deployment."
+      - "Ensure proper environment separation (dev, staging, prod)."
+      - "Test rollback procedures for failed deployments."
+
+ai_collaboration_guidelines:
+  pause_and_verify_points:
+    - "After architecture design, before implementation begins."
+    - "When security-critical components are being developed."
+    - "Before integrating new AWS services."
+    - "When making database schema changes."
+    - "Before deploying to production environment."
+  
+  error_correction_process:
+    - "Document the error with specific details."
+    - "Identify root cause through logs and testing."
+    - "Propose multiple solution options when applicable."
+    - "Implement fix with appropriate tests."
+    - "Update documentation to prevent similar errors."
+
+  code_review_standards:
+    - "All code must have appropriate error handling."
+    - "Security-sensitive operations must be thoroughly reviewed."
+    - "Performance implications should be considered and documented."
+    - "Code should follow the project's established patterns."
+
+security_requirements:
+  - "All user data must be encrypted at rest and in transit."
+  - "API endpoints must implement proper authentication and authorization."
+  - "S3 buckets must have appropriate access policies."
+  - "IAM roles should follow principle of least privilege."
+  - "Regular security audits must be conducted."
+
+documentation_requirements:
+  - "Architecture diagrams must be kept up-to-date."
+  - "API endpoints must be documented with Swagger/OpenAPI."
+  - "Setup and deployment procedures must be documented."
+  - "Database schema changes must be tracked and documented." 

@@ -1,0 +1,246 @@
+service: claim-connectors-crm
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+  environment:
+    LEADS_TABLE: ${self:service}-leads-${self:provider.stage}
+    DOCUMENTS_TABLE: ${self:service}-documents-${self:provider.stage}
+    CALLS_TABLE: ${self:service}-calls-${self:provider.stage}
+    DOCUMENTS_BUCKET: ${self:service}-documents-${self:provider.stage}
+    RECORDINGS_BUCKET: ${self:service}-recordings-${self:provider.stage}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - !GetAtt LeadsTable.Arn
+            - !GetAtt DocumentsTable.Arn
+            - !GetAtt CallsTable.Arn
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+            - s3:GetObject
+            - s3:DeleteObject
+          Resource:
+            - !Sub arn:aws:s3:::${self:provider.environment.DOCUMENTS_BUCKET}/*
+            - !Sub arn:aws:s3:::${self:provider.environment.RECORDINGS_BUCKET}/*
+
+plugins:
+  - serverless-plugin-typescript
+
+functions:
+  # Lead Management
+  createLead:
+    handler: src/api/leads.create
+    events:
+      - http:
+          path: /leads
+          method: post
+          cors: true
+          authorizer: aws_iam
+
+  getLead:
+    handler: src/api/leads.get
+    events:
+      - http:
+          path: /leads/{id}
+          method: get
+          cors: true
+          authorizer: aws_iam
+
+  updateLead:
+    handler: src/api/leads.update
+    events:
+      - http:
+          path: /leads/{id}
+          method: put
+          cors: true
+          authorizer: aws_iam
+
+  deleteLead:
+    handler: src/api/leads.delete
+    events:
+      - http:
+          path: /leads/{id}
+          method: delete
+          cors: true
+          authorizer: aws_iam
+
+  listLeads:
+    handler: src/api/leads.list
+    events:
+      - http:
+          path: /leads
+          method: get
+          cors: true
+          authorizer: aws_iam
+
+  # Document Management
+  getUploadUrl:
+    handler: src/api/documents.getUploadUrl
+    events:
+      - http:
+          path: /documents/upload-url
+          method: post
+          cors: true
+          authorizer: aws_iam
+
+  getDocumentUrl:
+    handler: src/api/documents.getDownloadUrl
+    events:
+      - http:
+          path: /documents/{id}/download-url
+          method: get
+          cors: true
+          authorizer: aws_iam
+
+  listDocuments:
+    handler: src/api/documents.list
+    events:
+      - http:
+          path: /documents
+          method: get
+          cors: true
+          authorizer: aws_iam
+
+  # Call Management
+  saveCallMetadata:
+    handler: src/api/calls.saveMetadata
+    events:
+      - http:
+          path: /calls
+          method: post
+          cors: true
+          authorizer: aws_iam
+
+  getCallRecording:
+    handler: src/api/calls.getRecordingUrl
+    events:
+      - http:
+          path: /calls/{id}/recording
+          method: get
+          cors: true
+          authorizer: aws_iam
+
+  listCalls:
+    handler: src/api/calls.list
+    events:
+      - http:
+          path: /calls
+          method: get
+          cors: true
+          authorizer: aws_iam
+
+resources:
+  Resources:
+    # DynamoDB Tables
+    LeadsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.LEADS_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+
+    DocumentsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DOCUMENTS_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: leadId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: LeadIdIndex
+            KeySchema:
+              - AttributeName: leadId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+
+    CallsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.CALLS_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: leadId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: LeadIdIndex
+            KeySchema:
+              - AttributeName: leadId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+
+    # S3 Buckets
+    DocumentsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.DOCUMENTS_BUCKET}
+        CorsConfiguration:
+          CorsRules:
+            - AllowedHeaders:
+                - '*'
+              AllowedMethods:
+                - GET
+                - PUT
+                - POST
+                - DELETE
+                - HEAD
+              AllowedOrigins:
+                - '*'
+              MaxAge: 3000
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256
+
+    RecordingsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.RECORDINGS_BUCKET}
+        CorsConfiguration:
+          CorsRules:
+            - AllowedHeaders:
+                - '*'
+              AllowedMethods:
+                - GET
+                - PUT
+                - POST
+                - DELETE
+                - HEAD
+              AllowedOrigins:
+                - '*'
+              MaxAge: 3000
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256 
