@@ -48,7 +48,7 @@
     "eject": "react-scripts eject",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "postinstall": "npm install ajv@6.12.6 --no-save --legacy-peer-deps"
+    "postinstall": "npm install ajv@8.12.0 ajv-keywords@5.1.0 --legacy-peer-deps"
   },
   "eslintConfig": {
     "extends": [
@@ -67,5 +67,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "resolutions": {
+    "ajv": "8.12.0",
+    "ajv-keywords": "5.1.0"
   }
 }
