@@ -1,74 +1,32 @@
-import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import axios from 'axios';
 import { Auth } from 'aws-amplify';
-import { 
-  Lead, 
-  CreateLeadInput, 
-  UpdateLeadInput, 
-  LeadQueryParams, 
-  LeadListResponse 
-} from '../types/Lead';
-import { 
-  Document, 
-  UpdateDocumentInput, 
-  DocumentQueryParams, 
-  DocumentListResponse,
-  UploadUrlRequest,
-  UploadUrlResponse,
-  DownloadUrlResponse
-} from '../types/Document';
-import { 
-  Call, 
-  CreateCallInput, 
-  UpdateCallInput, 
-  CallQueryParams, 
-  CallListResponse,
-  RecordingUrlResponse
-} from '../types/Call';
-import {
-  FirmPerformance,
-  CPAPerformance,
-  MonthlyStats,
-  PerformanceComparison
-} from '../types/Performance';
-import {
-  Claim, CreateClaimInput, UpdateClaimInput, ClaimQueryParams,
-  ClaimListResponse, ClaimStatistics, ClaimTimelineEvent
-} from '../types/Claim';
+import mockApi from './mockApi';
+import { Lead } from '../types/Lead';
+import { Document } from '../types/Document';
+import { Call } from '../types/Call';
+import { Claim } from '../types/Claim';
 
 // Flag to toggle between mock and real API
-const USE_MOCK_API = process.env.REACT_APP_USE_MOCK_API === 'true';
+export const USE_MOCK_API = process.env.REACT_APP_USE_MOCK_API === 'true' || true;
 
-// Import mock API if needed
-let mockApiModule: any = null;
-if (USE_MOCK_API) {
-  import('./mockApi').then((module) => {
-    mockApiModule = module.mockApi;
-  });
-}
-
-// Create axios instance for real API
-const apiClient: AxiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_ENDPOINT,
+// Create an axios instance for API requests
+const apiClient = axios.create({
+  baseURL: process.env.REACT_APP_API_ENDPOINT || 'https://api.claimconnectors.com',
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Add request interceptor to include auth token
+// Add a request interceptor to add the authorization token
 apiClient.interceptors.request.use(
-  async (config: InternalAxiosRequestConfig) => {
-    // Get token from Auth (AWS Amplify)
+  async (config) => {
     try {
       const session = await Auth.currentSession();
       const token = session.getIdToken().getJwtToken();
-      
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+      config.headers.Authorization = `Bearer ${token}`;
     } catch (error) {
       console.error('Error getting auth token:', error);
     }
-    
     return config;
   },
   (error) => {
@@ -76,303 +34,444 @@ apiClient.interceptors.request.use(
   }
 );
 
-// API service
+// Type definitions for API parameters
+interface QueryParams {
+  [key: string]: string | number | boolean | undefined;
+}
+
+interface UploadUrlRequest {
+  name: string;
+  type: string;
+  claimId?: string;
+}
+
+interface UpdateDocumentInput {
+  name?: string;
+  type?: string;
+  claimId?: string;
+}
+
+// API service object
 const api = {
-  // Leads API
+  // Lead API methods
   leads: {
-    list: async (params: LeadQueryParams = {}): Promise<LeadListResponse> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.leads.list(params);
+    list: async (params: QueryParams = {}) => {
+      if (USE_MOCK_API) {
+        return {
+          leads: await mockApi.getLeads(),
+          total: (await mockApi.getLeads()).length,
+          limit: 20,
+          offset: 0
+        };
       } else {
         const response = await apiClient.get('/leads', { params });
         return response.data;
       }
     },
     
-    get: async (id: string): Promise<Lead> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.leads.get(id);
+    get: async (id: string) => {
+      if (USE_MOCK_API) {
+        return mockApi.getLeadById(id);
       } else {
         const response = await apiClient.get(`/leads/${id}`);
         return response.data;
       }
     },
     
-    create: async (data: CreateLeadInput): Promise<Lead> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.leads.create(data);
+    create: async (data: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>) => {
+      if (USE_MOCK_API) {
+        return mockApi.createLead(data);
       } else {
         const response = await apiClient.post('/leads', data);
         return response.data;
       }
     },
     
-    update: async (id: string, data: UpdateLeadInput): Promise<Lead> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.leads.update(id, data);
+    update: async (id: string, data: Partial<Lead>) => {
+      if (USE_MOCK_API) {
+        return mockApi.updateLead(id, data);
       } else {
         const response = await apiClient.put(`/leads/${id}`, data);
         return response.data;
       }
     },
     
-    delete: async (id: string): Promise<{ success: boolean }> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.leads.delete(id);
+    delete: async (id: string) => {
+      if (USE_MOCK_API) {
+        const success = await mockApi.deleteLead(id);
+        return { success };
       } else {
         await apiClient.delete(`/leads/${id}`);
         return { success: true };
       }
-    },
+    }
   },
   
-  // Documents API
+  // Document API methods
   documents: {
-    list: async (params: DocumentQueryParams = {}): Promise<DocumentListResponse> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.documents.list(params);
+    list: async (params: QueryParams = {}) => {
+      if (USE_MOCK_API) {
+        return {
+          documents: await mockApi.getDocuments(),
+          total: (await mockApi.getDocuments()).length,
+          limit: 20,
+          offset: 0
+        };
       } else {
         const response = await apiClient.get('/documents', { params });
         return response.data;
       }
     },
     
-    getUploadUrl: async (data: UploadUrlRequest): Promise<UploadUrlResponse> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.documents.getUploadUrl(data);
+    getUploadUrl: async (data: UploadUrlRequest) => {
+      if (USE_MOCK_API) {
+        // Mock implementation for upload URL
+        const document = await mockApi.uploadDocument({
+          ...data,
+          fileUrl: 'https://example.com/mock-file-url',
+          uploadedBy: 'mock-user-id',
+          createdAt: new Date().toISOString()
+        });
+        
+        return {
+          documentId: document.id,
+          uploadUrl: 'https://example.com/mock-upload-url',
+          s3Key: 'mock-s3-key'
+        };
       } else {
         const response = await apiClient.post('/documents/upload-url', data);
         return response.data;
       }
     },
     
-    getDownloadUrl: async (id: string): Promise<DownloadUrlResponse> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.documents.getDownloadUrl(id);
+    getDownloadUrl: async (id: string) => {
+      if (USE_MOCK_API) {
+        // Mock implementation for download URL
+        return {
+          downloadUrl: 'https://example.com/mock-download-url'
+        };
       } else {
         const response = await apiClient.get(`/documents/${id}/download-url`);
         return response.data;
       }
     },
     
-    update: async (id: string, data: UpdateDocumentInput): Promise<Document> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.documents.update(id, data);
+    update: async (id: string, data: UpdateDocumentInput) => {
+      if (USE_MOCK_API) {
+        // Mock implementation for document update
+        const documents = await mockApi.getDocuments();
+        const document = documents.find(doc => doc.id === id);
+        if (!document) return null;
+        
+        return {
+          ...document,
+          ...data
+        };
       } else {
         const response = await apiClient.put(`/documents/${id}`, data);
         return response.data;
       }
     },
     
-    delete: async (id: string): Promise<{ success: boolean }> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.documents.delete(id);
+    delete: async (id: string) => {
+      if (USE_MOCK_API) {
+        const success = await mockApi.deleteDocument(id);
+        return { success };
       } else {
         await apiClient.delete(`/documents/${id}`);
         return { success: true };
       }
-    },
+    }
   },
   
-  // Calls API
+  // Call API methods
   calls: {
-    list: async (params: CallQueryParams = {}): Promise<CallListResponse> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.calls.list(params);
+    list: async (params: QueryParams = {}) => {
+      if (USE_MOCK_API) {
+        return {
+          calls: await mockApi.getCalls(),
+          total: (await mockApi.getCalls()).length,
+          limit: 20,
+          offset: 0
+        };
       } else {
         const response = await apiClient.get('/calls', { params });
         return response.data;
       }
     },
     
-    saveMetadata: async (data: CreateCallInput): Promise<Call> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.calls.saveMetadata(data);
+    saveMetadata: async (data: Omit<Call, 'id'>) => {
+      if (USE_MOCK_API) {
+        return mockApi.createCall(data);
       } else {
         const response = await apiClient.post('/calls', data);
         return response.data;
       }
     },
     
-    getRecordingUrl: async (id: string): Promise<RecordingUrlResponse> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.calls.getRecordingUrl(id);
+    getRecordingUrl: async (id: string) => {
+      if (USE_MOCK_API) {
+        // Mock implementation for recording URL
+        return {
+          recordingUrl: 'https://example.com/mock-recording-url'
+        };
       } else {
         const response = await apiClient.get(`/calls/${id}/recording`);
         return response.data;
       }
     },
     
-    updateNotes: async (id: string, data: UpdateCallInput): Promise<Call> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.calls.updateNotes(id, data);
+    updateNotes: async (id: string, data: Partial<Call>) => {
+      if (USE_MOCK_API) {
+        return mockApi.updateCall(id, data);
       } else {
         const response = await apiClient.put(`/calls/${id}/notes`, data);
         return response.data;
       }
-    },
+    }
   },
   
-  // Firm Performance API
+  // Firm performance API methods
   firmPerformance: {
-    list: async (): Promise<FirmPerformance[]> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.firmPerformance.list();
+    list: async () => {
+      if (USE_MOCK_API) {
+        return mockApi.getFirmPerformance();
       } else {
         const response = await apiClient.get('/firms/performance');
         return response.data;
       }
     },
     
-    get: async (id: string): Promise<FirmPerformance> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.firmPerformance.get(id);
+    get: async (id: string) => {
+      if (USE_MOCK_API) {
+        // For mock, we just return the same firm performance data
+        return mockApi.getFirmPerformance();
       } else {
         const response = await apiClient.get(`/firms/${id}/performance`);
         return response.data;
       }
     },
     
-    getMonthlyStats: async (id: string): Promise<MonthlyStats[]> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.firmPerformance.getMonthlyStats(id);
+    getMonthlyStats: async (id: string) => {
+      if (USE_MOCK_API) {
+        // Mock implementation for monthly stats
+        const firmPerformance = mockApi.getFirmPerformance();
+        return firmPerformance.monthlyStats || [];
       } else {
         const response = await apiClient.get(`/firms/${id}/monthly-stats`);
         return response.data;
       }
     },
     
-    getComparison: async (): Promise<PerformanceComparison[]> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.firmPerformance.getComparison();
+    getComparison: async () => {
+      if (USE_MOCK_API) {
+        // Mock implementation for performance comparison
+        return [
+          {
+            id: '1',
+            name: 'Smith & Associates',
+            successRate: 78.5,
+            totalClaims: 200,
+            averageClaimValue: 45000,
+            clientSatisfactionScore: 92
+          },
+          {
+            id: '2',
+            name: 'Johnson Tax Group',
+            successRate: 72.3,
+            totalClaims: 180,
+            averageClaimValue: 42000,
+            clientSatisfactionScore: 88
+          },
+          {
+            id: '3',
+            name: 'Williams Financial',
+            successRate: 81.2,
+            totalClaims: 150,
+            averageClaimValue: 48000,
+            clientSatisfactionScore: 94
+          }
+        ];
       } else {
-        const response = await apiClient.get<PerformanceComparison[]>('/firms/comparison');
+        const response = await apiClient.get('/firms/comparison');
         return response.data;
       }
-    },
+    }
   },
   
-  // CPA Performance API
+  // CPA performance API methods
   cpaPerformance: {
-    list: async (): Promise<CPAPerformance[]> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.cpaPerformance.list();
+    list: async () => {
+      if (USE_MOCK_API) {
+        return mockApi.getCPAPerformance();
       } else {
         const response = await apiClient.get('/cpas/performance');
         return response.data;
       }
     },
     
-    get: async (id: string): Promise<CPAPerformance> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.cpaPerformance.get(id);
+    get: async (id: string) => {
+      if (USE_MOCK_API) {
+        return mockApi.getCPAPerformanceById(id);
       } else {
         const response = await apiClient.get(`/cpas/${id}/performance`);
         return response.data;
       }
     },
     
-    getMonthlyStats: async (id: string): Promise<MonthlyStats[]> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.cpaPerformance.getMonthlyStats(id);
+    getMonthlyStats: async (id: string) => {
+      if (USE_MOCK_API) {
+        // Mock implementation for monthly stats
+        const cpaPerformance = await mockApi.getCPAPerformanceById(id);
+        return cpaPerformance?.monthlyStats || [];
       } else {
         const response = await apiClient.get(`/cpas/${id}/monthly-stats`);
         return response.data;
       }
-    },
+    }
   },
-
-  // Claims API
+  
+  // Claims API methods
   claims: {
-    create: async (claim: CreateClaimInput): Promise<Claim> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.claims.create(claim);
+    create: async (claim: Omit<Claim, 'id' | 'createdAt' | 'updatedAt' | 'timeline'>) => {
+      if (USE_MOCK_API) {
+        return mockApi.createClaim(claim);
       } else {
-        const response = await apiClient.post<Claim>('/claims', claim);
+        const response = await apiClient.post('/claims', claim);
         return response.data;
       }
     },
     
-    get: async (id: string): Promise<Claim> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.claims.get(id);
+    get: async (id: string) => {
+      if (USE_MOCK_API) {
+        return mockApi.getClaimById(id);
       } else {
-        const response = await apiClient.get<Claim>(`/claims/${id}`);
+        const response = await apiClient.get(`/claims/${id}`);
         return response.data;
       }
     },
     
-    update: async (id: string, claim: UpdateClaimInput): Promise<Claim> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.claims.update(id, claim);
+    update: async (id: string, claim: Partial<Claim>) => {
+      if (USE_MOCK_API) {
+        return mockApi.updateClaim(id, claim);
       } else {
-        const response = await apiClient.put<Claim>(`/claims/${id}`, claim);
+        const response = await apiClient.put(`/claims/${id}`, claim);
         return response.data;
       }
     },
     
-    delete: async (id: string): Promise<void> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.claims.delete(id);
+    delete: async (id: string) => {
+      if (USE_MOCK_API) {
+        await mockApi.deleteClaim(id);
+        return { success: true };
       } else {
         await apiClient.delete(`/claims/${id}`);
+        return { success: true };
       }
     },
     
-    list: async (params?: ClaimQueryParams): Promise<ClaimListResponse> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.claims.list(params);
+    list: async (params: QueryParams = {}) => {
+      if (USE_MOCK_API) {
+        return {
+          claims: await mockApi.getClaims(),
+          total: (await mockApi.getClaims()).length,
+          limit: 20,
+          offset: 0
+        };
       } else {
-        const response = await apiClient.get<ClaimListResponse>('/claims', { params });
+        const response = await apiClient.get('/claims', { params });
         return response.data;
       }
     },
     
-    getStatistics: async (): Promise<ClaimStatistics> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.claims.getStatistics();
+    getStatistics: async () => {
+      if (USE_MOCK_API) {
+        // Mock implementation for claim statistics
+        const claims = await mockApi.getClaims();
+        const totalClaims = claims.length;
+        const totalClaimAmount = claims.reduce((sum, claim) => sum + (claim.amount || 0), 0);
+        const approvedClaims = claims.filter(claim => claim.status === 'APPROVED' || claim.status === 'PARTIALLY_APPROVED');
+        const totalApprovedAmount = approvedClaims.reduce((sum, claim) => sum + (claim.amount || 0), 0);
+        
+        return {
+          totalClaims,
+          totalClaimAmount,
+          totalApprovedAmount,
+          approvalRate: totalClaims > 0 ? (approvedClaims.length / totalClaims) * 100 : 0,
+          averageProcessingTime: 14, // Mock average processing time in days
+          claimsByStatus: {
+            NEW: claims.filter(claim => claim.status === 'NEW').length,
+            IN_PROGRESS: claims.filter(claim => claim.status === 'IN_PROGRESS').length,
+            PENDING: claims.filter(claim => claim.status === 'PENDING').length,
+            APPROVED: claims.filter(claim => claim.status === 'APPROVED').length,
+            REJECTED: claims.filter(claim => claim.status === 'REJECTED').length,
+            CLOSED: claims.filter(claim => claim.status === 'CLOSED').length
+          },
+          claimsByType: {
+            AUTO: claims.filter(claim => claim.type === 'AUTO').length,
+            HEALTH: claims.filter(claim => claim.type === 'HEALTH').length,
+            PROPERTY: claims.filter(claim => claim.type === 'PROPERTY').length,
+            LIABILITY: claims.filter(claim => claim.type === 'LIABILITY').length,
+            LIFE: claims.filter(claim => claim.type === 'LIFE').length,
+            OTHER: claims.filter(claim => claim.type === 'OTHER').length
+          },
+          claimsByPriority: {
+            LOW: claims.filter(claim => claim.priority === 'LOW').length,
+            MEDIUM: claims.filter(claim => claim.priority === 'MEDIUM').length,
+            HIGH: claims.filter(claim => claim.priority === 'HIGH').length,
+            URGENT: claims.filter(claim => claim.priority === 'URGENT').length
+          }
+        };
       } else {
-        const response = await apiClient.get<ClaimStatistics>('/claims/statistics');
+        const response = await apiClient.get('/claims/statistics');
         return response.data;
       }
     },
     
-    getTimeline: async (id: string): Promise<ClaimTimelineEvent[]> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.claims.getTimeline(id);
+    getTimeline: async (id: string) => {
+      if (USE_MOCK_API) {
+        const claim = await mockApi.getClaimById(id);
+        return claim?.timeline || [];
       } else {
-        const response = await apiClient.get<ClaimTimelineEvent[]>(`/claims/${id}/timeline`);
+        const response = await apiClient.get(`/claims/${id}/timeline`);
         return response.data;
       }
     },
     
-    addTimelineEvent: async (id: string, event: Omit<ClaimTimelineEvent, 'id' | 'claimId' | 'timestamp' | 'userId' | 'userName'>): Promise<ClaimTimelineEvent> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.claims.addTimelineEvent(id, event);
+    addTimelineEvent: async (id: string, event: { action: string; description: string; createdBy: string }) => {
+      if (USE_MOCK_API) {
+        return mockApi.addClaimTimelineEntry(id, event);
       } else {
-        const response = await apiClient.post<ClaimTimelineEvent>(`/claims/${id}/timeline`, event);
+        const response = await apiClient.post(`/claims/${id}/timeline`, event);
         return response.data;
       }
     },
     
-    getByFirm: async (firmId: string, params?: ClaimQueryParams): Promise<ClaimListResponse> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.claims.getByFirm(firmId, params);
+    getByFirm: async (firmId: string, params: QueryParams = {}) => {
+      if (USE_MOCK_API) {
+        const claims = await mockApi.getClaims();
+        const firmClaims = claims.filter(claim => claim.firmId === firmId);
+        return {
+          claims: firmClaims,
+          total: firmClaims.length,
+          limit: 20,
+          offset: 0
+        };
       } else {
-        const response = await apiClient.get<ClaimListResponse>(`/firms/${firmId}/claims`, { params });
+        const response = await apiClient.get(`/firms/${firmId}/claims`, { params });
         return response.data;
       }
     },
     
-    getByCPA: async (cpaId: string, params?: ClaimQueryParams): Promise<ClaimListResponse> => {
-      if (USE_MOCK_API && mockApiModule) {
-        return mockApiModule.claims.getByCPA(cpaId, params);
+    getByLeadId: async (leadId: string, params: QueryParams = {}) => {
+      if (USE_MOCK_API) {
+        return mockApi.getClaimsByLeadId(leadId);
       } else {
-        const response = await apiClient.get<ClaimListResponse>(`/cpas/${cpaId}/claims`, { params });
+        const response = await apiClient.get(`/leads/${leadId}/claims`, { params });
         return response.data;
       }
-    },
-  },
+    }
+  }
 };
 
 export default api; 
