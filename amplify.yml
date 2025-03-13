@@ -5,9 +5,13 @@ frontend:
       commands:
         - cd frontend
         - rm -rf node_modules
+        - echo "Installing dependencies with legacy peer deps..."
         - npm install --legacy-peer-deps
+        - echo "Installing specific versions of critical dependencies..."
         - npm install ajv@8.12.0 ajv-keywords@5.1.0 @craco/craco@7.1.0 cosmiconfig-typescript-loader@1.0.9 typescript@4.9.5 --legacy-peer-deps
-        - echo "Ensuring aws-exports.js exists"
+        - echo "Verifying craco installation..."
+        - npm list @craco/craco || npm install @craco/craco@7.1.0 --legacy-peer-deps
+        - echo "Ensuring aws-exports.js exists..."
         - |
           if [ ! -f src/aws-exports.js ]; then
             echo "Creating placeholder aws-exports.js"
@@ -38,7 +42,8 @@ frontend:
           fi
     build:
       commands:
-        - npm run build
+        - echo "Starting build process..."
+        - npm run build || { echo "Build failed, checking for issues..."; npm list; exit 1; }
   artifacts:
     baseDirectory: frontend/build
     files:
