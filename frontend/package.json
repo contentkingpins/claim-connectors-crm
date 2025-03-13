@@ -14,6 +14,7 @@
     "@reduxjs/toolkit": "^1.9.5",
     "aws-amplify": "^5.3.5",
     "axios": "^1.4.0",
+    "cosmiconfig-typescript-loader": "^1.0.9",
     "date-fns": "^2.30.0",
     "formik": "^2.4.3",
     "react": "^18.2.0",
@@ -49,7 +50,7 @@
     "eject": "react-scripts eject",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "postinstall": "npm install ajv@8.12.0 ajv-keywords@5.1.0 @craco/craco@7.1.0 --legacy-peer-deps"
+    "postinstall": "npm install ajv@8.12.0 ajv-keywords@5.1.0 @craco/craco@7.1.0 cosmiconfig-typescript-loader@1.0.9 --legacy-peer-deps"
   },
   "eslintConfig": {
     "extends": [

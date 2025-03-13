@@ -4,8 +4,8 @@ frontend:
     preBuild:
       commands:
         - cd frontend
-        - npm ci --legacy-peer-deps
-        - npm install ajv@8.12.0 ajv-keywords@5.1.0 @craco/craco@7.1.0 --legacy-peer-deps
+        - npm install --legacy-peer-deps
+        - npm install ajv@8.12.0 ajv-keywords@5.1.0 @craco/craco@7.1.0 cosmiconfig-typescript-loader@1.0.9 --legacy-peer-deps
     build:
       commands:
         - npm run build
