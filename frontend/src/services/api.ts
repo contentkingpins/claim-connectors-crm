@@ -36,8 +36,9 @@ apiClient.interceptors.request.use(
         if (process.env.NODE_ENV === 'development') {
           config.headers.Authorization = `Bearer mock-token`;
         } else {
-          // In production, rethrow the error
-          throw authError;
+          // In production, we'll redirect to login if not authenticated
+          window.location.href = '/login';
+          return Promise.reject(new Error('Authentication required'));
         }
       }
     } catch (error) {
@@ -46,6 +47,18 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add a response interceptor to handle authentication errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Redirect to login page if unauthorized
+      window.location.href = '/login';
+    }
     return Promise.reject(error);
   }
 );

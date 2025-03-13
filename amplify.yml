@@ -4,8 +4,9 @@ frontend:
     preBuild:
       commands:
         - cd frontend
+        - rm -rf node_modules
         - npm install --legacy-peer-deps
-        - npm install ajv@8.12.0 ajv-keywords@5.1.0 @craco/craco@7.1.0 cosmiconfig-typescript-loader@1.0.9 --legacy-peer-deps
+        - npm install ajv@8.12.0 ajv-keywords@5.1.0 @craco/craco@7.1.0 cosmiconfig-typescript-loader@1.0.9 typescript@4.9.5 --legacy-peer-deps
         - echo "Ensuring aws-exports.js exists"
         - |
           if [ ! -f src/aws-exports.js ]; then
