@@ -9,8 +9,16 @@ frontend:
         - echo "TSC_COMPILE_ON_ERROR=true" >> .env
         - echo "REACT_APP_USE_MOCK_API=true" >> .env
         - echo "REACT_APP_AWS_REGION=us-east-1" >> .env
-        - npm ci --legacy-peer-deps
-        - npm install typescript@4.9.5 fork-ts-checker-webpack-plugin@6.5.3 --legacy-peer-deps
+        - echo "NODE_OPTIONS=--max_old_space_size=4096" >> .env
+        - echo "Installing dependencies..."
+        - npm install --legacy-peer-deps
+        - echo "Installing specific TypeScript version..."
+        - npm install typescript@4.9.5 --legacy-peer-deps
+        - echo "Installing fork-ts-checker-webpack-plugin..."
+        - npm install fork-ts-checker-webpack-plugin@6.5.3 --legacy-peer-deps
+        - echo "Checking installed versions..."
+        - npm list typescript
+        - npm list fork-ts-checker-webpack-plugin
         - |
           if [ ! -f src/aws-exports.js ]; then
             echo "Creating placeholder aws-exports.js"
@@ -38,7 +46,10 @@ frontend:
     build:
       commands:
         - cd frontend
-        - SKIP_PREFLIGHT_CHECK=true npm run build
+        - echo "Starting build process with environment variables:"
+        - printenv | grep REACT_APP || true
+        - echo "SKIP_PREFLIGHT_CHECK=true NODE_OPTIONS=--max_old_space_size=4096 npm run build"
+        - SKIP_PREFLIGHT_CHECK=true NODE_OPTIONS=--max_old_space_size=4096 npm run build
   artifacts:
     baseDirectory: frontend/build
     files:
