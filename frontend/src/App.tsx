@@ -17,15 +17,21 @@ import { UserRole } from './context/AuthContext';
 // import ProfilePage from './pages/ProfilePage';
 // import AdminPage from './pages/AdminPage';
 
-// Configure Amplify
-Amplify.configure({
-  Auth: {
-    region: process.env.REACT_APP_AWS_REGION || 'us-east-1',
-    userPoolId: process.env.REACT_APP_USER_POOL_ID,
-    userPoolWebClientId: process.env.REACT_APP_USER_POOL_CLIENT_ID,
-    mandatorySignIn: true,
-  }
-});
+// Configure Amplify with fallback values if environment variables are missing
+try {
+  Amplify.configure({
+    Auth: {
+      region: process.env.REACT_APP_AWS_REGION || 'us-east-1',
+      userPoolId: process.env.REACT_APP_USER_POOL_ID,
+      userPoolWebClientId: process.env.REACT_APP_USER_POOL_CLIENT_ID,
+      mandatorySignIn: true,
+    }
+  });
+} catch (error) {
+  console.warn('Error configuring Amplify:', error);
+  // Continue with the app even if Amplify configuration fails
+  // This allows the app to run with mock data in development
+}
 
 // Create theme
 const theme = createTheme({

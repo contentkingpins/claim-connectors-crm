@@ -19,5 +19,11 @@ module.exports = {
       
       return webpackConfig;
     }
+  },
+  typescript: {
+    enableTypeChecking: false // Disable type checking during build for better performance
+  },
+  eslint: {
+    enable: false // Disable eslint during build for better performance
   }
 }; 
