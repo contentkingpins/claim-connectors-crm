@@ -1,610 +1,539 @@
+import { Lead, LeadStatus } from '../types/Lead';
+import { Document, DocumentType } from '../types/Document';
+import { Call, CallDirection, CallOutcome } from '../types/Call';
+import { Claim, ClaimStatus, ClaimType, ClaimPriority } from '../types/Claim';
 import { v4 as uuidv4 } from 'uuid';
-import { LeadStatus, LeadSource } from '../types/Lead';
-import { DocumentType } from '../types/Document';
-import { CallDirection, CallOutcome } from '../types/Call';
 
-// Delay to simulate network latency
-const MOCK_API_DELAY = 500;
+// Mock data
+const mockLeads: Lead[] = [
+  {
+    id: '1',
+    firstName: 'John',
+    lastName: 'Doe',
+    email: 'john.doe@example.com',
+    phone: '555-123-4567',
+    status: LeadStatus.NEW,
+    source: 'Website',
+    notes: 'Interested in filing a claim',
+    createdAt: new Date('2023-01-15').toISOString(),
+    updatedAt: new Date('2023-01-15').toISOString(),
+  },
+  {
+    id: '2',
+    firstName: 'Jane',
+    lastName: 'Smith',
+    email: 'jane.smith@example.com',
+    phone: '555-987-6543',
+    status: LeadStatus.CONTACTED,
+    source: 'Referral',
+    notes: 'Follow up next week',
+    createdAt: new Date('2023-02-10').toISOString(),
+    updatedAt: new Date('2023-02-12').toISOString(),
+  },
+  {
+    id: '3',
+    firstName: 'Robert',
+    lastName: 'Johnson',
+    email: 'robert.johnson@example.com',
+    phone: '555-456-7890',
+    status: LeadStatus.QUALIFIED,
+    source: 'Google',
+    notes: 'Ready to proceed with claim',
+    createdAt: new Date('2023-03-05').toISOString(),
+    updatedAt: new Date('2023-03-07').toISOString(),
+  },
+];
 
-// Helper function to simulate API delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const mockDocuments: Document[] = [
+  {
+    id: '1',
+    name: 'Insurance Policy',
+    type: DocumentType.POLICY,
+    fileUrl: 'https://example.com/documents/policy1.pdf',
+    uploadedBy: 'John Admin',
+    claimId: '1',
+    createdAt: new Date('2023-01-20').toISOString(),
+  },
+  {
+    id: '2',
+    name: 'Damage Photos',
+    type: DocumentType.PHOTO,
+    fileUrl: 'https://example.com/documents/photos1.zip',
+    uploadedBy: 'Jane Agent',
+    claimId: '1',
+    createdAt: new Date('2023-01-22').toISOString(),
+  },
+  {
+    id: '3',
+    name: 'Medical Report',
+    type: DocumentType.MEDICAL,
+    fileUrl: 'https://example.com/documents/medical1.pdf',
+    uploadedBy: 'Robert Doctor',
+    claimId: '2',
+    createdAt: new Date('2023-02-15').toISOString(),
+  },
+];
 
-// Generate random date within the last 30 days
-const getRandomDate = (daysBack = 30) => {
-  const date = new Date();
-  date.setDate(date.getDate() - Math.floor(Math.random() * daysBack));
-  return date.toISOString();
+const mockCalls: Call[] = [
+  {
+    id: '1',
+    leadId: '1',
+    agentId: 'agent1',
+    direction: CallDirection.OUTBOUND,
+    outcome: CallOutcome.ANSWERED,
+    startTime: new Date('2023-01-16T10:00:00Z').toISOString(),
+    endTime: new Date('2023-01-16T10:05:00Z').toISOString(),
+    duration: 300, // 5 minutes
+    notes: 'Discussed claim details',
+    tags: ['follow-up', 'claim-discussion'],
+  },
+  {
+    id: '2',
+    leadId: '2',
+    agentId: 'agent2',
+    direction: CallDirection.OUTBOUND,
+    outcome: CallOutcome.VOICEMAIL,
+    startTime: new Date('2023-02-20T14:30:00Z').toISOString(),
+    endTime: new Date('2023-02-20T14:31:00Z').toISOString(),
+    duration: 60,
+    notes: 'Need to discuss policy options',
+    tags: ['initial-contact'],
+  },
+  {
+    id: '3',
+    leadId: '1',
+    agentId: 'agent1',
+    direction: CallDirection.INBOUND,
+    outcome: CallOutcome.ANSWERED,
+    startTime: new Date('2023-01-23T11:00:00Z').toISOString(),
+    endTime: new Date('2023-01-23T11:08:00Z').toISOString(),
+    duration: 480, // 8 minutes
+    notes: 'Follow-up on documentation',
+    tags: ['documentation', 'follow-up'],
+  },
+];
+
+const mockClaims: Claim[] = [
+  {
+    id: '1',
+    leadId: '1',
+    type: ClaimType.AUTO,
+    status: ClaimStatus.IN_PROGRESS,
+    priority: ClaimPriority.MEDIUM,
+    description: 'Car accident on Highway 101',
+    amount: 15000,
+    assignedTo: 'agent1',
+    policyNumber: 'POL-123456',
+    incidentDate: new Date('2023-01-10').toISOString(),
+    createdAt: new Date('2023-01-15').toISOString(),
+    updatedAt: new Date('2023-01-18').toISOString(),
+    timeline: [
+      {
+        id: '1',
+        claimId: '1',
+        action: 'Claim Created',
+        description: 'Claim was created in the system',
+        createdAt: new Date('2023-01-15').toISOString(),
+        createdBy: 'John Admin',
+      },
+      {
+        id: '2',
+        claimId: '1',
+        action: 'Documents Requested',
+        description: 'Requested insurance policy and photos',
+        createdAt: new Date('2023-01-16').toISOString(),
+        createdBy: 'Jane Agent',
+      },
+    ],
+  },
+  {
+    id: '2',
+    leadId: '2',
+    type: ClaimType.HEALTH,
+    status: ClaimStatus.NEW,
+    priority: ClaimPriority.HIGH,
+    description: 'Medical procedure coverage',
+    amount: 8500,
+    assignedTo: 'agent2',
+    policyNumber: 'POL-789012',
+    incidentDate: new Date('2023-02-05').toISOString(),
+    createdAt: new Date('2023-02-10').toISOString(),
+    updatedAt: new Date('2023-02-10').toISOString(),
+    timeline: [
+      {
+        id: '3',
+        claimId: '2',
+        action: 'Claim Created',
+        description: 'Claim was created in the system',
+        createdAt: new Date('2023-02-10').toISOString(),
+        createdBy: 'Jane Agent',
+      },
+    ],
+  },
+  {
+    id: '3',
+    leadId: '3',
+    type: ClaimType.PROPERTY,
+    status: ClaimStatus.APPROVED,
+    priority: ClaimPriority.LOW,
+    description: 'Water damage from pipe leak',
+    amount: 5200,
+    assignedTo: 'agent3',
+    policyNumber: 'POL-345678',
+    incidentDate: new Date('2023-03-01').toISOString(),
+    createdAt: new Date('2023-03-05').toISOString(),
+    updatedAt: new Date('2023-03-15').toISOString(),
+    timeline: [
+      {
+        id: '4',
+        claimId: '3',
+        action: 'Claim Created',
+        description: 'Claim was created in the system',
+        createdAt: new Date('2023-03-05').toISOString(),
+        createdBy: 'Robert Agent',
+      },
+      {
+        id: '5',
+        claimId: '3',
+        action: 'Inspection Scheduled',
+        description: 'Property inspection scheduled for March 10',
+        createdAt: new Date('2023-03-07').toISOString(),
+        createdBy: 'Robert Agent',
+      },
+      {
+        id: '6',
+        claimId: '3',
+        action: 'Claim Approved',
+        description: 'Claim approved for full amount',
+        createdAt: new Date('2023-03-15').toISOString(),
+        createdBy: 'Manager',
+      },
+    ],
+  },
+];
+
+// Mock firm performance data
+const mockFirmPerformance = {
+  totalClaims: 125,
+  approvedClaims: 87,
+  deniedClaims: 23,
+  pendingClaims: 15,
+  totalRevenue: 1250000,
+  averageClaimAmount: 14367,
+  successRate: 0.7,
+  monthlyStats: [
+    { month: 'Jan', claims: 12, revenue: 120000 },
+    { month: 'Feb', claims: 15, revenue: 145000 },
+    { month: 'Mar', claims: 18, revenue: 180000 },
+    { month: 'Apr', claims: 14, revenue: 135000 },
+    { month: 'May', claims: 16, revenue: 155000 },
+    { month: 'Jun', claims: 20, revenue: 195000 },
+    { month: 'Jul', claims: 17, revenue: 165000 },
+    { month: 'Aug', claims: 13, revenue: 125000 },
+    { month: 'Sep', claims: 15, revenue: 145000 },
+    { month: 'Oct', claims: 19, revenue: 185000 },
+    { month: 'Nov', claims: 22, revenue: 215000 },
+    { month: 'Dec', claims: 18, revenue: 175000 },
+  ],
 };
 
-// Generate mock leads data
-const generateMockLeads = (count = 50) => {
-  const leads = [];
-  const statuses = Object.values(LeadStatus);
-  const sources = Object.values(LeadSource);
-  
-  const firstNames = ['John', 'Jane', 'Michael', 'Sarah', 'David', 'Emily', 'Robert', 'Lisa', 'William', 'Jessica'];
-  const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Miller', 'Davis', 'Garcia', 'Rodriguez', 'Wilson'];
-  const companies = ['ABC Insurance', 'XYZ Corp', 'Acme Inc', 'Global Services', 'Metro Insurance', 'City Financial', 'United Claims', 'Liberty Group', 'Pacific Trust', 'Atlantic Partners'];
-  
-  for (let i = 0; i < count; i++) {
-    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-    const company = Math.random() > 0.3 ? companies[Math.floor(Math.random() * companies.length)] : undefined;
-    
-    leads.push({
-      id: uuidv4(),
-      firstName,
-      lastName,
-      email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`,
-      phone: `+1${Math.floor(Math.random() * 9000000000) + 1000000000}`,
-      company,
-      status: statuses[Math.floor(Math.random() * statuses.length)],
-      source: sources[Math.floor(Math.random() * sources.length)],
-      notes: Math.random() > 0.5 ? `Notes for ${firstName} ${lastName}` : undefined,
-      assignedTo: Math.random() > 0.3 ? uuidv4() : undefined,
-      createdAt: getRandomDate(60),
-      updatedAt: getRandomDate(30),
-      lastContactedAt: Math.random() > 0.4 ? getRandomDate(15) : undefined,
-      estimatedValue: Math.random() > 0.3 ? Math.floor(Math.random() * 50000) + 5000 : undefined,
-      tags: Math.random() > 0.6 ? ['important', 'follow-up'] : undefined,
-    });
-  }
-  
-  // Sort by createdAt date, newest first
-  return leads.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-};
+// Mock CPA performance data
+const mockCPAPerformance = [
+  {
+    id: '1',
+    name: 'John Smith',
+    totalClaims: 45,
+    approvedClaims: 32,
+    deniedClaims: 8,
+    pendingClaims: 5,
+    totalRevenue: 450000,
+    successRate: 0.71,
+    averageClaimAmount: 14062.5,
+    monthlyStats: [
+      { month: 'Jan', claims: 4, revenue: 40000 },
+      { month: 'Feb', claims: 5, revenue: 48000 },
+      { month: 'Mar', claims: 6, revenue: 60000 },
+      { month: 'Apr', claims: 4, revenue: 38000 },
+      { month: 'May', claims: 5, revenue: 50000 },
+      { month: 'Jun', claims: 7, revenue: 68000 },
+      { month: 'Jul', claims: 6, revenue: 58000 },
+      { month: 'Aug', claims: 4, revenue: 42000 },
+      { month: 'Sep', claims: 5, revenue: 48000 },
+      { month: 'Oct', claims: 6, revenue: 62000 },
+      { month: 'Nov', claims: 8, revenue: 78000 },
+      { month: 'Dec', claims: 6, revenue: 60000 },
+    ],
+  },
+  {
+    id: '2',
+    name: 'Jane Doe',
+    totalClaims: 38,
+    approvedClaims: 29,
+    deniedClaims: 6,
+    pendingClaims: 3,
+    totalRevenue: 380000,
+    successRate: 0.76,
+    averageClaimAmount: 13103.45,
+    monthlyStats: [
+      { month: 'Jan', claims: 3, revenue: 32000 },
+      { month: 'Feb', claims: 4, revenue: 38000 },
+      { month: 'Mar', claims: 5, revenue: 48000 },
+      { month: 'Apr', claims: 4, revenue: 40000 },
+      { month: 'May', claims: 4, revenue: 42000 },
+      { month: 'Jun', claims: 6, revenue: 58000 },
+      { month: 'Jul', claims: 5, revenue: 50000 },
+      { month: 'Aug', claims: 3, revenue: 32000 },
+      { month: 'Sep', claims: 4, revenue: 40000 },
+      { month: 'Oct', claims: 5, revenue: 52000 },
+      { month: 'Nov', claims: 6, revenue: 60000 },
+      { month: 'Dec', claims: 5, revenue: 48000 },
+    ],
+  },
+  {
+    id: '3',
+    name: 'Robert Johnson',
+    totalClaims: 42,
+    approvedClaims: 26,
+    deniedClaims: 9,
+    pendingClaims: 7,
+    totalRevenue: 420000,
+    successRate: 0.62,
+    averageClaimAmount: 16153.85,
+    monthlyStats: [
+      { month: 'Jan', claims: 5, revenue: 48000 },
+      { month: 'Feb', claims: 6, revenue: 59000 },
+      { month: 'Mar', claims: 7, revenue: 72000 },
+      { month: 'Apr', claims: 6, revenue: 57000 },
+      { month: 'May', claims: 7, revenue: 63000 },
+      { month: 'Jun', claims: 7, revenue: 69000 },
+      { month: 'Jul', claims: 6, revenue: 57000 },
+      { month: 'Aug', claims: 6, revenue: 51000 },
+      { month: 'Sep', claims: 6, revenue: 57000 },
+      { month: 'Oct', claims: 8, revenue: 71000 },
+      { month: 'Nov', claims: 8, revenue: 77000 },
+      { month: 'Dec', claims: 7, revenue: 67000 },
+    ],
+  },
+];
 
-// Generate mock documents data
-const generateMockDocuments = (leads: any[], count = 100) => {
-  const documents = [];
-  const documentTypes = Object.values(DocumentType);
-  const fileTypes = ['pdf', 'docx', 'jpg', 'png', 'txt'];
-  const fileNames = ['Insurance_Claim', 'Medical_Report', 'Accident_Photos', 'Policy_Document', 'ID_Verification', 'Contract', 'Invoice', 'Receipt', 'Statement', 'Form'];
-  
-  for (let i = 0; i < count; i++) {
-    const lead = leads[Math.floor(Math.random() * leads.length)];
-    const fileType = fileTypes[Math.floor(Math.random() * fileTypes.length)];
-    const fileName = `${fileNames[Math.floor(Math.random() * fileNames.length)]}_${Math.floor(Math.random() * 1000)}.${fileType}`;
-    const documentType = documentTypes[Math.floor(Math.random() * documentTypes.length)];
-    
-    documents.push({
-      id: uuidv4(),
-      leadId: lead.id,
-      fileName,
-      fileType,
-      fileSize: Math.floor(Math.random() * 5000000) + 10000, // 10KB to 5MB
-      documentType,
-      description: Math.random() > 0.5 ? `Description for ${fileName}` : undefined,
-      s3Key: `documents/${lead.id}/${uuidv4()}-${fileName}`,
-      uploadedBy: uuidv4(),
-      uploadedAt: getRandomDate(45),
-      updatedAt: getRandomDate(15),
-      tags: Math.random() > 0.7 ? ['verified', 'processed'] : undefined,
-      isPublic: Math.random() > 0.8,
-    });
-  }
-  
-  // Sort by uploadedAt date, newest first
-  return documents.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
-};
-
-// Generate mock calls data
-const generateMockCalls = (leads: any[], count = 150) => {
-  const calls = [];
-  const directions = Object.values(CallDirection);
-  const outcomes = Object.values(CallOutcome);
-  
-  for (let i = 0; i < count; i++) {
-    const lead = leads[Math.floor(Math.random() * leads.length)];
-    const direction = directions[Math.floor(Math.random() * directions.length)];
-    const outcome = outcomes[Math.floor(Math.random() * outcomes.length)];
-    const startTime = getRandomDate(30);
-    const duration = Math.floor(Math.random() * 900) + 30; // 30 seconds to 15 minutes
-    
-    // Calculate end time by adding duration to start time
-    const endTimeDate = new Date(startTime);
-    endTimeDate.setSeconds(endTimeDate.getSeconds() + duration);
-    const endTime = endTimeDate.toISOString();
-    
-    calls.push({
-      id: uuidv4(),
-      leadId: lead.id,
-      agentId: uuidv4(),
-      direction,
-      outcome,
-      startTime,
-      endTime,
-      duration,
-      recordingUrl: Math.random() > 0.3 ? `https://example.com/recordings/${uuidv4()}` : undefined,
-      recordingS3Key: Math.random() > 0.3 ? `recordings/${lead.id}/${uuidv4()}.mp3` : undefined,
-      notes: Math.random() > 0.6 ? `Call notes for ${lead.firstName} ${lead.lastName}` : undefined,
-      tags: Math.random() > 0.7 ? ['important', 'follow-up'] : undefined,
-      connectContactId: uuidv4(),
-      queueName: Math.random() > 0.5 ? 'Main Queue' : 'Support Queue',
-      transferredFrom: Math.random() > 0.9 ? uuidv4() : undefined,
-      transferredTo: Math.random() > 0.9 ? uuidv4() : undefined,
-    });
-  }
-  
-  // Sort by startTime date, newest first
-  return calls.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
-};
-
-// Generate mock firm performance data
-const generateMockFirmPerformance = (count = 10) => {
-  const firms = [];
-  const firmNames = ['Smith & Associates', 'Johnson Legal Group', 'Williams Law Firm', 'Brown & Partners', 'Davis Claims Services', 
-                     'Miller & Sons', 'Wilson Legal', 'Taylor Associates', 'Anderson Claims', 'Thomas & Co'];
-  
-  for (let i = 0; i < count; i++) {
-    const totalClaims = Math.floor(Math.random() * 500) + 50;
-    const successfulClaims = Math.floor(Math.random() * totalClaims);
-    const pendingClaims = Math.floor(Math.random() * (totalClaims - successfulClaims));
-    const rejectedClaims = totalClaims - successfulClaims - pendingClaims;
-    
-    firms.push({
-      id: uuidv4(),
-      name: firmNames[i],
-      totalClaims,
-      successfulClaims,
-      pendingClaims,
-      rejectedClaims,
-      successRate: (successfulClaims / totalClaims) * 100,
-      averageClaimValue: Math.floor(Math.random() * 50000) + 10000,
-      averageProcessingTime: Math.floor(Math.random() * 60) + 15, // 15-75 days
-      totalRevenue: Math.floor(Math.random() * 5000000) + 500000,
-      clientSatisfactionScore: Math.floor(Math.random() * 50) + 50, // 50-100
-      lastUpdated: getRandomDate(7),
-    });
-  }
-  
-  // Sort by successRate, highest first
-  return firms.sort((a, b) => b.successRate - a.successRate);
-};
-
-// Generate mock CPA performance data
-const generateMockCPAPerformance = (count = 15) => {
-  const cpas = [];
-  const firstNames = ['John', 'Jane', 'Michael', 'Sarah', 'David', 'Emily', 'Robert', 'Lisa', 'William', 'Jessica', 'Richard', 'Jennifer', 'Thomas', 'Elizabeth', 'Daniel'];
-  const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Miller', 'Davis', 'Garcia', 'Rodriguez', 'Wilson', 'Martinez', 'Anderson', 'Taylor', 'Thomas', 'Moore'];
-  
-  for (let i = 0; i < count; i++) {
-    const totalClaims = Math.floor(Math.random() * 200) + 20;
-    const successfulClaims = Math.floor(Math.random() * totalClaims);
-    const pendingClaims = Math.floor(Math.random() * (totalClaims - successfulClaims));
-    const rejectedClaims = totalClaims - successfulClaims - pendingClaims;
-    
-    cpas.push({
-      id: uuidv4(),
-      firstName: firstNames[i],
-      lastName: lastNames[i],
-      email: `${firstNames[i].toLowerCase()}.${lastNames[i].toLowerCase()}@example.com`,
-      phone: `+1${Math.floor(Math.random() * 9000000000) + 1000000000}`,
-      totalClaims,
-      successfulClaims,
-      pendingClaims,
-      rejectedClaims,
-      successRate: (successfulClaims / totalClaims) * 100,
-      averageClaimValue: Math.floor(Math.random() * 40000) + 8000,
-      averageProcessingTime: Math.floor(Math.random() * 50) + 10, // 10-60 days
-      totalRevenue: Math.floor(Math.random() * 2000000) + 200000,
-      clientSatisfactionScore: Math.floor(Math.random() * 40) + 60, // 60-100
-      lastUpdated: getRandomDate(10),
-      specialties: ['Tax Credits', 'Business Consulting', 'Financial Planning', 'Audit Services', 'Tax Preparation'].slice(0, Math.floor(Math.random() * 3) + 1),
-    });
-  }
-  
-  // Sort by successRate, highest first
-  return cpas.sort((a, b) => b.successRate - a.successRate);
-};
-
-// Generate all mock data
-const mockLeads = generateMockLeads();
-const mockDocuments = generateMockDocuments(mockLeads);
-const mockCalls = generateMockCalls(mockLeads);
-const mockFirmPerformance = generateMockFirmPerformance();
-const mockCPAPerformance = generateMockCPAPerformance();
-
-// Mock API functions
+// Mock API methods
 export const mockApi = {
-  // Leads API
-  leads: {
-    list: async (params: any = {}) => {
-      await delay(MOCK_API_DELAY);
-      
-      let filteredLeads = [...mockLeads];
-      
-      // Apply filters if provided
-      if (params.status) {
-        filteredLeads = filteredLeads.filter(lead => lead.status === params.status);
-      }
-      
-      if (params.source) {
-        filteredLeads = filteredLeads.filter(lead => lead.source === params.source);
-      }
-      
-      if (params.assignedTo) {
-        filteredLeads = filteredLeads.filter(lead => lead.assignedTo === params.assignedTo);
-      }
-      
-      if (params.searchTerm) {
-        const searchTerm = params.searchTerm.toLowerCase();
-        filteredLeads = filteredLeads.filter(lead => 
-          lead.firstName.toLowerCase().includes(searchTerm) ||
-          lead.lastName.toLowerCase().includes(searchTerm) ||
-          lead.email.toLowerCase().includes(searchTerm) ||
-          (lead.company && lead.company.toLowerCase().includes(searchTerm))
-        );
-      }
-      
-      // Apply pagination
-      const limit = params.limit || 20;
-      const offset = params.offset || 0;
-      const paginatedLeads = filteredLeads.slice(offset, offset + limit);
-      
-      return {
-        leads: paginatedLeads,
-        total: filteredLeads.length,
-        limit,
-        offset,
-      };
-    },
+  // Lead methods
+  getLeads: async (): Promise<Lead[]> => {
+    return [...mockLeads];
+  },
+  
+  getLeadById: async (id: string): Promise<Lead | null> => {
+    const lead = mockLeads.find(lead => lead.id === id);
+    return lead ? { ...lead } : null;
+  },
+  
+  createLead: async (lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Promise<Lead> => {
+    const newLead: Lead = {
+      ...lead,
+      id: uuidv4(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    mockLeads.push(newLead);
+    return { ...newLead };
+  },
+  
+  updateLead: async (id: string, lead: Partial<Lead>): Promise<Lead | null> => {
+    const index = mockLeads.findIndex(l => l.id === id);
+    if (index === -1) return null;
     
-    get: async (id: string) => {
-      await delay(MOCK_API_DELAY);
-      const lead = mockLeads.find(lead => lead.id === id);
-      
-      if (!lead) {
-        throw new Error('Lead not found');
-      }
-      
-      return lead;
-    },
+    mockLeads[index] = {
+      ...mockLeads[index],
+      ...lead,
+      updatedAt: new Date().toISOString(),
+    };
     
-    create: async (data: any) => {
-      await delay(MOCK_API_DELAY);
-      const now = new Date().toISOString();
-      const newLead = {
+    return { ...mockLeads[index] };
+  },
+  
+  deleteLead: async (id: string): Promise<boolean> => {
+    const index = mockLeads.findIndex(l => l.id === id);
+    if (index === -1) return false;
+    
+    mockLeads.splice(index, 1);
+    return true;
+  },
+  
+  // Document methods
+  getDocuments: async (): Promise<Document[]> => {
+    return [...mockDocuments];
+  },
+  
+  getDocumentsByClaimId: async (claimId: string): Promise<Document[]> => {
+    return mockDocuments.filter(doc => doc.claimId === claimId).map(doc => ({ ...doc }));
+  },
+  
+  uploadDocument: async (document: Omit<Document, 'id' | 'createdAt'>): Promise<Document> => {
+    const newDocument: Document = {
+      ...document,
+      id: uuidv4(),
+      createdAt: new Date().toISOString(),
+    };
+    mockDocuments.push(newDocument);
+    return { ...newDocument };
+  },
+  
+  deleteDocument: async (id: string): Promise<boolean> => {
+    const index = mockDocuments.findIndex(d => d.id === id);
+    if (index === -1) return false;
+    
+    mockDocuments.splice(index, 1);
+    return true;
+  },
+  
+  // Call methods
+  getCalls: async (): Promise<Call[]> => {
+    return [...mockCalls];
+  },
+  
+  getCallsByLeadId: async (leadId: string): Promise<Call[]> => {
+    return mockCalls.filter(call => call.leadId === leadId).map(call => ({ ...call }));
+  },
+  
+  createCall: async (call: Omit<Call, 'id'>): Promise<Call> => {
+    const newCall: Call = {
+      ...call,
+      id: uuidv4(),
+    };
+    mockCalls.push(newCall);
+    return { ...newCall };
+  },
+  
+  updateCall: async (id: string, call: Partial<Call>): Promise<Call | null> => {
+    const index = mockCalls.findIndex(c => c.id === id);
+    if (index === -1) return null;
+    
+    mockCalls[index] = {
+      ...mockCalls[index],
+      ...call,
+    };
+    
+    return { ...mockCalls[index] };
+  },
+  
+  deleteCall: async (id: string): Promise<boolean> => {
+    const index = mockCalls.findIndex(c => c.id === id);
+    if (index === -1) return false;
+    
+    mockCalls.splice(index, 1);
+    return true;
+  },
+  
+  // Claim methods
+  getClaims: async (): Promise<Claim[]> => {
+    return [...mockClaims];
+  },
+  
+  getClaimById: async (id: string): Promise<Claim | null> => {
+    const claim = mockClaims.find(claim => claim.id === id);
+    return claim ? { ...claim } : null;
+  },
+  
+  getClaimsByLeadId: async (leadId: string): Promise<Claim[]> => {
+    return mockClaims.filter(claim => claim.leadId === leadId).map(claim => ({ ...claim }));
+  },
+  
+  createClaim: async (claim: Omit<Claim, 'id' | 'createdAt' | 'updatedAt' | 'timeline'>): Promise<Claim> => {
+    const newClaim: Claim = {
+      ...claim,
+      id: uuidv4(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      timeline: [
+        {
+          id: uuidv4(),
+          claimId: '',  // Will be updated after ID is assigned
+          action: 'Claim Created',
+          description: 'Claim was created in the system',
+          createdAt: new Date().toISOString(),
+          createdBy: 'System',
+        }
+      ],
+    };
+    
+    // Update the claimId in the timeline
+    newClaim.timeline[0].claimId = newClaim.id;
+    
+    mockClaims.push(newClaim);
+    return { ...newClaim };
+  },
+  
+  updateClaim: async (id: string, claim: Partial<Claim>): Promise<Claim | null> => {
+    const index = mockClaims.findIndex(c => c.id === id);
+    if (index === -1) return null;
+    
+    // Create a timeline entry for the update if not provided
+    if (!claim.timeline && mockClaims[index].status !== claim.status && claim.status) {
+      const timelineEntry = {
         id: uuidv4(),
-        ...data,
-        createdAt: now,
-        updatedAt: now,
+        claimId: id,
+        action: `Status Changed to ${claim.status}`,
+        description: `Claim status was updated to ${claim.status}`,
+        createdAt: new Date().toISOString(),
+        createdBy: 'System',
       };
       
-      mockLeads.unshift(newLead);
-      return newLead;
-    },
-    
-    update: async (id: string, data: any) => {
-      await delay(MOCK_API_DELAY);
-      const leadIndex = mockLeads.findIndex(lead => lead.id === id);
-      
-      if (leadIndex === -1) {
-        throw new Error('Lead not found');
-      }
-      
-      const updatedLead = {
-        ...mockLeads[leadIndex],
-        ...data,
+      mockClaims[index] = {
+        ...mockClaims[index],
+        ...claim,
+        updatedAt: new Date().toISOString(),
+        timeline: [...mockClaims[index].timeline, timelineEntry],
+      };
+    } else {
+      mockClaims[index] = {
+        ...mockClaims[index],
+        ...claim,
         updatedAt: new Date().toISOString(),
       };
-      
-      mockLeads[leadIndex] = updatedLead;
-      return updatedLead;
-    },
+    }
     
-    delete: async (id: string) => {
-      await delay(MOCK_API_DELAY);
-      const leadIndex = mockLeads.findIndex(lead => lead.id === id);
-      
-      if (leadIndex === -1) {
-        throw new Error('Lead not found');
-      }
-      
-      mockLeads.splice(leadIndex, 1);
-      return { success: true };
-    },
+    return { ...mockClaims[index] };
   },
   
-  // Documents API
-  documents: {
-    list: async (params: any = {}) => {
-      await delay(MOCK_API_DELAY);
-      
-      let filteredDocuments = [...mockDocuments];
-      
-      // Apply filters if provided
-      if (params.leadId) {
-        filteredDocuments = filteredDocuments.filter(doc => doc.leadId === params.leadId);
-      }
-      
-      if (params.documentType) {
-        filteredDocuments = filteredDocuments.filter(doc => doc.documentType === params.documentType);
-      }
-      
-      if (params.uploadedBy) {
-        filteredDocuments = filteredDocuments.filter(doc => doc.uploadedBy === params.uploadedBy);
-      }
-      
-      if (params.searchTerm) {
-        const searchTerm = params.searchTerm.toLowerCase();
-        filteredDocuments = filteredDocuments.filter(doc => 
-          doc.fileName.toLowerCase().includes(searchTerm) ||
-          (doc.description && doc.description.toLowerCase().includes(searchTerm))
-        );
-      }
-      
-      // Apply pagination
-      const limit = params.limit || 20;
-      const offset = params.offset || 0;
-      const paginatedDocuments = filteredDocuments.slice(offset, offset + limit);
-      
-      return {
-        documents: paginatedDocuments,
-        total: filteredDocuments.length,
-        limit,
-        offset,
-      };
-    },
+  addClaimTimelineEntry: async (claimId: string, entry: Omit<Claim['timeline'][0], 'id' | 'claimId' | 'createdAt'>): Promise<Claim | null> => {
+    const index = mockClaims.findIndex(c => c.id === claimId);
+    if (index === -1) return null;
     
-    getUploadUrl: async (data: any) => {
-      await delay(MOCK_API_DELAY);
-      const documentId = uuidv4();
-      const s3Key = `documents/${data.leadId}/${documentId}-${data.fileName}`;
-      
-      // In a real implementation, this would return a pre-signed S3 URL
-      return {
-        documentId,
-        uploadUrl: `https://example.com/upload/${s3Key}`,
-        s3Key,
-      };
-    },
+    const timelineEntry = {
+      id: uuidv4(),
+      claimId,
+      ...entry,
+      createdAt: new Date().toISOString(),
+    };
     
-    getDownloadUrl: async (id: string) => {
-      await delay(MOCK_API_DELAY);
-      const document = mockDocuments.find(doc => doc.id === id);
-      
-      if (!document) {
-        throw new Error('Document not found');
-      }
-      
-      // In a real implementation, this would return a pre-signed S3 URL
-      return {
-        downloadUrl: `https://example.com/download/${document.s3Key}`,
-      };
-    },
+    mockClaims[index].timeline.push(timelineEntry);
+    mockClaims[index].updatedAt = new Date().toISOString();
     
-    update: async (id: string, data: any) => {
-      await delay(MOCK_API_DELAY);
-      const docIndex = mockDocuments.findIndex(doc => doc.id === id);
-      
-      if (docIndex === -1) {
-        throw new Error('Document not found');
-      }
-      
-      const updatedDocument = {
-        ...mockDocuments[docIndex],
-        ...data,
-        updatedAt: new Date().toISOString(),
-      };
-      
-      mockDocuments[docIndex] = updatedDocument;
-      return updatedDocument;
-    },
-    
-    delete: async (id: string) => {
-      await delay(MOCK_API_DELAY);
-      const docIndex = mockDocuments.findIndex(doc => doc.id === id);
-      
-      if (docIndex === -1) {
-        throw new Error('Document not found');
-      }
-      
-      mockDocuments.splice(docIndex, 1);
-      return { success: true };
-    },
+    return { ...mockClaims[index] };
   },
   
-  // Calls API
-  calls: {
-    list: async (params: any = {}) => {
-      await delay(MOCK_API_DELAY);
-      
-      let filteredCalls = [...mockCalls];
-      
-      // Apply filters if provided
-      if (params.leadId) {
-        filteredCalls = filteredCalls.filter(call => call.leadId === params.leadId);
-      }
-      
-      if (params.agentId) {
-        filteredCalls = filteredCalls.filter(call => call.agentId === params.agentId);
-      }
-      
-      if (params.direction) {
-        filteredCalls = filteredCalls.filter(call => call.direction === params.direction);
-      }
-      
-      if (params.outcome) {
-        filteredCalls = filteredCalls.filter(call => call.outcome === params.outcome);
-      }
-      
-      if (params.hasRecording !== undefined) {
-        filteredCalls = filteredCalls.filter(call => 
-          params.hasRecording ? !!call.recordingS3Key : !call.recordingS3Key
-        );
-      }
-      
-      // Apply pagination
-      const limit = params.limit || 20;
-      const offset = params.offset || 0;
-      const paginatedCalls = filteredCalls.slice(offset, offset + limit);
-      
-      return {
-        calls: paginatedCalls,
-        total: filteredCalls.length,
-        limit,
-        offset,
-      };
-    },
+  deleteClaim: async (id: string): Promise<boolean> => {
+    const index = mockClaims.findIndex(c => c.id === id);
+    if (index === -1) return false;
     
-    saveMetadata: async (data: any) => {
-      await delay(MOCK_API_DELAY);
-      const now = new Date().toISOString();
-      const newCall = {
-        id: uuidv4(),
-        ...data,
-        startTime: data.startTime || now,
-        endTime: data.endTime || now,
-      };
-      
-      mockCalls.unshift(newCall);
-      return newCall;
-    },
-    
-    getRecordingUrl: async (id: string) => {
-      await delay(MOCK_API_DELAY);
-      const call = mockCalls.find(call => call.id === id);
-      
-      if (!call) {
-        throw new Error('Call not found');
-      }
-      
-      if (!call.recordingS3Key) {
-        throw new Error('Call has no recording');
-      }
-      
-      // In a real implementation, this would return a pre-signed S3 URL
-      return {
-        recordingUrl: `https://example.com/recordings/${call.recordingS3Key}`,
-      };
-    },
-    
-    updateNotes: async (id: string, data: any) => {
-      await delay(MOCK_API_DELAY);
-      const callIndex = mockCalls.findIndex(call => call.id === id);
-      
-      if (callIndex === -1) {
-        throw new Error('Call not found');
-      }
-      
-      const updatedCall = {
-        ...mockCalls[callIndex],
-        notes: data.notes,
-        tags: data.tags,
-      };
-      
-      mockCalls[callIndex] = updatedCall;
-      return updatedCall;
-    },
+    mockClaims.splice(index, 1);
+    return true;
   },
   
-  // Firm Performance API
-  firmPerformance: {
-    list: async () => {
-      await delay(MOCK_API_DELAY);
-      return mockFirmPerformance;
-    },
-    
-    get: async (id: string) => {
-      await delay(MOCK_API_DELAY);
-      const firm = mockFirmPerformance.find(firm => firm.id === id);
-      
-      if (!firm) {
-        throw new Error('Firm not found');
-      }
-      
-      return firm;
-    },
-    
-    getMonthlyStats: async (id: string) => {
-      await delay(MOCK_API_DELAY);
-      const firm = mockFirmPerformance.find(firm => firm.id === id);
-      
-      if (!firm) {
-        throw new Error('Firm not found');
-      }
-      
-      // Generate 12 months of data
-      const monthlyStats = [];
-      const currentDate = new Date();
-      
-      for (let i = 0; i < 12; i++) {
-        const month = new Date(currentDate);
-        month.setMonth(currentDate.getMonth() - i);
-        
-        const totalClaims = Math.floor(Math.random() * 50) + 5;
-        const successfulClaims = Math.floor(Math.random() * totalClaims);
-        const pendingClaims = Math.floor(Math.random() * (totalClaims - successfulClaims));
-        const rejectedClaims = totalClaims - successfulClaims - pendingClaims;
-        
-        monthlyStats.push({
-          month: month.toISOString().substring(0, 7), // YYYY-MM format
-          totalClaims,
-          successfulClaims,
-          pendingClaims,
-          rejectedClaims,
-          successRate: (successfulClaims / totalClaims) * 100,
-          revenue: Math.floor(Math.random() * 500000) + 50000,
-        });
-      }
-      
-      return monthlyStats.reverse(); // Oldest to newest
-    },
+  // Firm performance methods
+  getFirmPerformance: async () => {
+    return { ...mockFirmPerformance };
   },
   
-  // CPA Performance API
-  cpaPerformance: {
-    list: async () => {
-      await delay(MOCK_API_DELAY);
-      return mockCPAPerformance;
-    },
-    
-    get: async (id: string) => {
-      await delay(MOCK_API_DELAY);
-      const cpa = mockCPAPerformance.find(cpa => cpa.id === id);
-      
-      if (!cpa) {
-        throw new Error('CPA not found');
-      }
-      
-      return cpa;
-    },
-    
-    getMonthlyStats: async (id: string) => {
-      await delay(MOCK_API_DELAY);
-      const cpa = mockCPAPerformance.find(cpa => cpa.id === id);
-      
-      if (!cpa) {
-        throw new Error('CPA not found');
-      }
-      
-      // Generate 12 months of data
-      const monthlyStats = [];
-      const currentDate = new Date();
-      
-      for (let i = 0; i < 12; i++) {
-        const month = new Date(currentDate);
-        month.setMonth(currentDate.getMonth() - i);
-        
-        const totalClaims = Math.floor(Math.random() * 20) + 2;
-        const successfulClaims = Math.floor(Math.random() * totalClaims);
-        const pendingClaims = Math.floor(Math.random() * (totalClaims - successfulClaims));
-        const rejectedClaims = totalClaims - successfulClaims - pendingClaims;
-        
-        monthlyStats.push({
-          month: month.toISOString().substring(0, 7), // YYYY-MM format
-          totalClaims,
-          successfulClaims,
-          pendingClaims,
-          rejectedClaims,
-          successRate: (successfulClaims / totalClaims) * 100,
-          revenue: Math.floor(Math.random() * 200000) + 20000,
-        });
-      }
-      
-      return monthlyStats.reverse(); // Oldest to newest
-    },
+  // CPA performance methods
+  getCPAPerformance: async () => {
+    return [...mockCPAPerformance];
+  },
+  
+  getCPAPerformanceById: async (id: string) => {
+    const cpa = mockCPAPerformance.find(cpa => cpa.id === id);
+    return cpa ? { ...cpa } : null;
   },
 };
 
