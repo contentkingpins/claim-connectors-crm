@@ -8,6 +8,10 @@ export enum DocumentType {
   INSURANCE_POLICY = 'INSURANCE_POLICY',
   MEDICAL_RECORD = 'MEDICAL_RECORD',
   OTHER = 'OTHER',
+  // Additional types to match mock data
+  TAX_RETURN = 'TAX_RETURN',
+  BUSINESS_LICENSE = 'BUSINESS_LICENSE',
+  PAYROLL_RECORDS = 'PAYROLL_RECORDS',
 }
 
 // Document interface

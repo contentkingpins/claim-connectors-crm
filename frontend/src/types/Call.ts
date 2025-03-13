@@ -11,6 +11,10 @@ export enum CallOutcome {
   NO_ANSWER = 'NO_ANSWER',
   BUSY = 'BUSY',
   FAILED = 'FAILED',
+  // Additional outcomes to match mock data
+  SCHEDULED_FOLLOW_UP = 'SCHEDULED_FOLLOW_UP',
+  REQUESTED_INFORMATION = 'REQUESTED_INFORMATION',
+  LEFT_VOICEMAIL = 'LEFT_VOICEMAIL',
 }
 
 // Call interface

@@ -18,6 +18,16 @@ export enum LeadSource {
   EMAIL_CAMPAIGN = 'EMAIL_CAMPAIGN',
   EVENT = 'EVENT',
   OTHER = 'OTHER',
+  GOOGLE = 'GOOGLE',
+}
+
+// Address interface
+export interface Address {
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
 }
 
 // Lead interface
@@ -37,6 +47,7 @@ export interface Lead {
   lastContactedAt?: string;
   estimatedValue?: number;
   tags?: string[];
+  address?: Address;
 }
 
 // Lead creation input interface
@@ -52,6 +63,7 @@ export interface CreateLeadInput {
   assignedTo?: string;
   estimatedValue?: number;
   tags?: string[];
+  address?: Address;
 }
 
 // Lead update input interface
@@ -68,6 +80,7 @@ export interface UpdateLeadInput {
   lastContactedAt?: string;
   estimatedValue?: number;
   tags?: string[];
+  address?: Address;
 }
 
 // Lead query parameters interface

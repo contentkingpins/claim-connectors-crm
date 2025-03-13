@@ -1,6 +1,5 @@
 import axios from 'axios';
-// Remove aws-amplify import if not installed
-// import { Auth } from 'aws-amplify';
+import { Auth } from 'aws-amplify';
 import mockApi from './mockApi';
 import { Lead } from '../types/Lead';
 import { Document, DocumentType } from '../types/Document';
@@ -8,7 +7,11 @@ import { Call } from '../types/Call';
 import { Claim, ClaimStatus, ClaimType } from '../types/Claim';
 
 // Flag to toggle between mock and real API
-export const USE_MOCK_API = process.env.REACT_APP_USE_MOCK_API === 'true' || true;
+// In development, default to mock API if not specified
+// In production, default to real API if not specified
+export const USE_MOCK_API = process.env.NODE_ENV === 'development' 
+  ? (process.env.REACT_APP_USE_MOCK_API === 'false' ? false : true)
+  : (process.env.REACT_APP_USE_MOCK_API === 'true' ? true : false);
 
 // Create an axios instance for API requests
 const apiClient = axios.create({
@@ -22,14 +25,21 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   async (config) => {
     try {
-      // Comment out Auth usage until aws-amplify is installed
-      /*
-      const session = await Auth.currentSession();
-      const token = session.getIdToken().getJwtToken();
-      config.headers.Authorization = `Bearer ${token}`;
-      */
-      // Temporary placeholder for token
-      config.headers.Authorization = `Bearer mock-token`;
+      // Try to get the auth token from Amplify
+      // If it fails, we'll use a mock token in development
+      try {
+        const session = await Auth.currentSession();
+        const token = session.getIdToken().getJwtToken();
+        config.headers.Authorization = `Bearer ${token}`;
+      } catch (authError) {
+        console.warn('Auth session not available, using mock token');
+        if (process.env.NODE_ENV === 'development') {
+          config.headers.Authorization = `Bearer mock-token`;
+        } else {
+          // In production, rethrow the error
+          throw authError;
+        }
+      }
     } catch (error) {
       console.error('Error getting auth token:', error);
     }
