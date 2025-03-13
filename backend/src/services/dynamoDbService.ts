@@ -39,7 +39,7 @@ export const getItem = async <T>(tableName: string, id: string): Promise<T | nul
 /**
  * Put an item into a DynamoDB table
  */
-export const putItem = async <T>(tableName: string, item: T): Promise<T> => {
+export const putItem = async <T extends Record<string, any>>(tableName: string, item: T): Promise<T> => {
   const command = new PutCommand({
     TableName: tableName,
     Item: item,

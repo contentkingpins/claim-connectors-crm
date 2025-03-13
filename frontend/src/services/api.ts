@@ -1,6 +1,5 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 import { Auth } from 'aws-amplify';
-import { mockApi } from './mockApi';
 import { 
   Lead, 
   CreateLeadInput, 
@@ -10,7 +9,6 @@ import {
 } from '../types/Lead';
 import { 
   Document, 
-  CreateDocumentInput, 
   UpdateDocumentInput, 
   DocumentQueryParams, 
   DocumentListResponse,
@@ -30,7 +28,6 @@ import {
   FirmPerformance,
   CPAPerformance,
   MonthlyStats,
-  PerformanceMetrics,
   PerformanceComparison
 } from '../types/Performance';
 import {
@@ -42,10 +39,10 @@ import {
 const USE_MOCK_API = process.env.REACT_APP_USE_MOCK_API === 'true';
 
 // Import mock API if needed
-let mockApi: any;
+let mockApiModule: any = null;
 if (USE_MOCK_API) {
   import('./mockApi').then((module) => {
-    mockApi = module.default;
+    mockApiModule = module.mockApi;
   });
 }
 
@@ -59,13 +56,13 @@ const apiClient: AxiosInstance = axios.create({
 
 // Add request interceptor to include auth token
 apiClient.interceptors.request.use(
-  async (config: AxiosRequestConfig) => {
+  async (config: InternalAxiosRequestConfig) => {
     // Get token from Auth (AWS Amplify)
     try {
       const session = await Auth.currentSession();
       const token = session.getIdToken().getJwtToken();
       
-      if (token) {
+      if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
@@ -84,8 +81,8 @@ const api = {
   // Leads API
   leads: {
     list: async (params: LeadQueryParams = {}): Promise<LeadListResponse> => {
-      if (USE_MOCK_API) {
-        return mockApi.leads.list(params);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.leads.list(params);
       } else {
         const response = await apiClient.get('/leads', { params });
         return response.data;
@@ -93,8 +90,8 @@ const api = {
     },
     
     get: async (id: string): Promise<Lead> => {
-      if (USE_MOCK_API) {
-        return mockApi.leads.get(id);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.leads.get(id);
       } else {
         const response = await apiClient.get(`/leads/${id}`);
         return response.data;
@@ -102,8 +99,8 @@ const api = {
     },
     
     create: async (data: CreateLeadInput): Promise<Lead> => {
-      if (USE_MOCK_API) {
-        return mockApi.leads.create(data);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.leads.create(data);
       } else {
         const response = await apiClient.post('/leads', data);
         return response.data;
@@ -111,8 +108,8 @@ const api = {
     },
     
     update: async (id: string, data: UpdateLeadInput): Promise<Lead> => {
-      if (USE_MOCK_API) {
-        return mockApi.leads.update(id, data);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.leads.update(id, data);
       } else {
         const response = await apiClient.put(`/leads/${id}`, data);
         return response.data;
@@ -120,8 +117,8 @@ const api = {
     },
     
     delete: async (id: string): Promise<{ success: boolean }> => {
-      if (USE_MOCK_API) {
-        return mockApi.leads.delete(id);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.leads.delete(id);
       } else {
         await apiClient.delete(`/leads/${id}`);
         return { success: true };
@@ -132,8 +129,8 @@ const api = {
   // Documents API
   documents: {
     list: async (params: DocumentQueryParams = {}): Promise<DocumentListResponse> => {
-      if (USE_MOCK_API) {
-        return mockApi.documents.list(params);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.documents.list(params);
       } else {
         const response = await apiClient.get('/documents', { params });
         return response.data;
@@ -141,8 +138,8 @@ const api = {
     },
     
     getUploadUrl: async (data: UploadUrlRequest): Promise<UploadUrlResponse> => {
-      if (USE_MOCK_API) {
-        return mockApi.documents.getUploadUrl(data);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.documents.getUploadUrl(data);
       } else {
         const response = await apiClient.post('/documents/upload-url', data);
         return response.data;
@@ -150,8 +147,8 @@ const api = {
     },
     
     getDownloadUrl: async (id: string): Promise<DownloadUrlResponse> => {
-      if (USE_MOCK_API) {
-        return mockApi.documents.getDownloadUrl(id);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.documents.getDownloadUrl(id);
       } else {
         const response = await apiClient.get(`/documents/${id}/download-url`);
         return response.data;
@@ -159,8 +156,8 @@ const api = {
     },
     
     update: async (id: string, data: UpdateDocumentInput): Promise<Document> => {
-      if (USE_MOCK_API) {
-        return mockApi.documents.update(id, data);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.documents.update(id, data);
       } else {
         const response = await apiClient.put(`/documents/${id}`, data);
         return response.data;
@@ -168,8 +165,8 @@ const api = {
     },
     
     delete: async (id: string): Promise<{ success: boolean }> => {
-      if (USE_MOCK_API) {
-        return mockApi.documents.delete(id);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.documents.delete(id);
       } else {
         await apiClient.delete(`/documents/${id}`);
         return { success: true };
@@ -180,8 +177,8 @@ const api = {
   // Calls API
   calls: {
     list: async (params: CallQueryParams = {}): Promise<CallListResponse> => {
-      if (USE_MOCK_API) {
-        return mockApi.calls.list(params);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.calls.list(params);
       } else {
         const response = await apiClient.get('/calls', { params });
         return response.data;
@@ -189,8 +186,8 @@ const api = {
     },
     
     saveMetadata: async (data: CreateCallInput): Promise<Call> => {
-      if (USE_MOCK_API) {
-        return mockApi.calls.saveMetadata(data);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.calls.saveMetadata(data);
       } else {
         const response = await apiClient.post('/calls', data);
         return response.data;
@@ -198,8 +195,8 @@ const api = {
     },
     
     getRecordingUrl: async (id: string): Promise<RecordingUrlResponse> => {
-      if (USE_MOCK_API) {
-        return mockApi.calls.getRecordingUrl(id);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.calls.getRecordingUrl(id);
       } else {
         const response = await apiClient.get(`/calls/${id}/recording`);
         return response.data;
@@ -207,8 +204,8 @@ const api = {
     },
     
     updateNotes: async (id: string, data: UpdateCallInput): Promise<Call> => {
-      if (USE_MOCK_API) {
-        return mockApi.calls.updateNotes(id, data);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.calls.updateNotes(id, data);
       } else {
         const response = await apiClient.put(`/calls/${id}/notes`, data);
         return response.data;
@@ -219,8 +216,8 @@ const api = {
   // Firm Performance API
   firmPerformance: {
     list: async (): Promise<FirmPerformance[]> => {
-      if (USE_MOCK_API) {
-        return mockApi.firmPerformance.list();
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.firmPerformance.list();
       } else {
         const response = await apiClient.get('/firms/performance');
         return response.data;
@@ -228,8 +225,8 @@ const api = {
     },
     
     get: async (id: string): Promise<FirmPerformance> => {
-      if (USE_MOCK_API) {
-        return mockApi.firmPerformance.get(id);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.firmPerformance.get(id);
       } else {
         const response = await apiClient.get(`/firms/${id}/performance`);
         return response.data;
@@ -237,8 +234,8 @@ const api = {
     },
     
     getMonthlyStats: async (id: string): Promise<MonthlyStats[]> => {
-      if (USE_MOCK_API) {
-        return mockApi.firmPerformance.getMonthlyStats(id);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.firmPerformance.getMonthlyStats(id);
       } else {
         const response = await apiClient.get(`/firms/${id}/monthly-stats`);
         return response.data;
@@ -246,8 +243,8 @@ const api = {
     },
     
     getComparison: async (): Promise<PerformanceComparison[]> => {
-      if (USE_MOCK_API) {
-        return mockApi.firmPerformance.getComparison();
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.firmPerformance.getComparison();
       } else {
         const response = await apiClient.get<PerformanceComparison[]>('/firms/comparison');
         return response.data;
@@ -258,8 +255,8 @@ const api = {
   // CPA Performance API
   cpaPerformance: {
     list: async (): Promise<CPAPerformance[]> => {
-      if (USE_MOCK_API) {
-        return mockApi.cpaPerformance.list();
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.cpaPerformance.list();
       } else {
         const response = await apiClient.get('/cpas/performance');
         return response.data;
@@ -267,8 +264,8 @@ const api = {
     },
     
     get: async (id: string): Promise<CPAPerformance> => {
-      if (USE_MOCK_API) {
-        return mockApi.cpaPerformance.get(id);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.cpaPerformance.get(id);
       } else {
         const response = await apiClient.get(`/cpas/${id}/performance`);
         return response.data;
@@ -276,8 +273,8 @@ const api = {
     },
     
     getMonthlyStats: async (id: string): Promise<MonthlyStats[]> => {
-      if (USE_MOCK_API) {
-        return mockApi.cpaPerformance.getMonthlyStats(id);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.cpaPerformance.getMonthlyStats(id);
       } else {
         const response = await apiClient.get(`/cpas/${id}/monthly-stats`);
         return response.data;
@@ -288,8 +285,8 @@ const api = {
   // Claims API
   claims: {
     create: async (claim: CreateClaimInput): Promise<Claim> => {
-      if (USE_MOCK_API) {
-        return mockApi.claims.create(claim);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.claims.create(claim);
       } else {
         const response = await apiClient.post<Claim>('/claims', claim);
         return response.data;
@@ -297,8 +294,8 @@ const api = {
     },
     
     get: async (id: string): Promise<Claim> => {
-      if (USE_MOCK_API) {
-        return mockApi.claims.get(id);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.claims.get(id);
       } else {
         const response = await apiClient.get<Claim>(`/claims/${id}`);
         return response.data;
@@ -306,8 +303,8 @@ const api = {
     },
     
     update: async (id: string, claim: UpdateClaimInput): Promise<Claim> => {
-      if (USE_MOCK_API) {
-        return mockApi.claims.update(id, claim);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.claims.update(id, claim);
       } else {
         const response = await apiClient.put<Claim>(`/claims/${id}`, claim);
         return response.data;
@@ -315,16 +312,16 @@ const api = {
     },
     
     delete: async (id: string): Promise<void> => {
-      if (USE_MOCK_API) {
-        return mockApi.claims.delete(id);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.claims.delete(id);
       } else {
         await apiClient.delete(`/claims/${id}`);
       }
     },
     
     list: async (params?: ClaimQueryParams): Promise<ClaimListResponse> => {
-      if (USE_MOCK_API) {
-        return mockApi.claims.list(params);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.claims.list(params);
       } else {
         const response = await apiClient.get<ClaimListResponse>('/claims', { params });
         return response.data;
@@ -332,8 +329,8 @@ const api = {
     },
     
     getStatistics: async (): Promise<ClaimStatistics> => {
-      if (USE_MOCK_API) {
-        return mockApi.claims.getStatistics();
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.claims.getStatistics();
       } else {
         const response = await apiClient.get<ClaimStatistics>('/claims/statistics');
         return response.data;
@@ -341,8 +338,8 @@ const api = {
     },
     
     getTimeline: async (id: string): Promise<ClaimTimelineEvent[]> => {
-      if (USE_MOCK_API) {
-        return mockApi.claims.getTimeline(id);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.claims.getTimeline(id);
       } else {
         const response = await apiClient.get<ClaimTimelineEvent[]>(`/claims/${id}/timeline`);
         return response.data;
@@ -350,8 +347,8 @@ const api = {
     },
     
     addTimelineEvent: async (id: string, event: Omit<ClaimTimelineEvent, 'id' | 'claimId' | 'timestamp' | 'userId' | 'userName'>): Promise<ClaimTimelineEvent> => {
-      if (USE_MOCK_API) {
-        return mockApi.claims.addTimelineEvent(id, event);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.claims.addTimelineEvent(id, event);
       } else {
         const response = await apiClient.post<ClaimTimelineEvent>(`/claims/${id}/timeline`, event);
         return response.data;
@@ -359,8 +356,8 @@ const api = {
     },
     
     getByFirm: async (firmId: string, params?: ClaimQueryParams): Promise<ClaimListResponse> => {
-      if (USE_MOCK_API) {
-        return mockApi.claims.getByFirm(firmId, params);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.claims.getByFirm(firmId, params);
       } else {
         const response = await apiClient.get<ClaimListResponse>(`/firms/${firmId}/claims`, { params });
         return response.data;
@@ -368,8 +365,8 @@ const api = {
     },
     
     getByCPA: async (cpaId: string, params?: ClaimQueryParams): Promise<ClaimListResponse> => {
-      if (USE_MOCK_API) {
-        return mockApi.claims.getByCPA(cpaId, params);
+      if (USE_MOCK_API && mockApiModule) {
+        return mockApiModule.claims.getByCPA(cpaId, params);
       } else {
         const response = await apiClient.get<ClaimListResponse>(`/cpas/${cpaId}/claims`, { params });
         return response.data;
