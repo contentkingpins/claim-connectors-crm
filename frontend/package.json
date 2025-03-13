@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@aws-amplify/ui-react": "^5.0.5",
+    "@craco/craco": "^7.1.0",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.14.3",
@@ -42,13 +43,13 @@
     "web-vitals": "^3.4.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "start": "craco start",
+    "build": "craco build",
+    "test": "craco test",
     "eject": "react-scripts eject",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "postinstall": "npm install ajv@8.12.0 ajv-keywords@5.1.0 --legacy-peer-deps"
+    "postinstall": "npm install ajv@8.12.0 ajv-keywords@5.1.0 @craco/craco@7.1.0 --legacy-peer-deps"
   },
   "eslintConfig": {
     "extends": [
