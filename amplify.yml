@@ -4,21 +4,17 @@ frontend:
     preBuild:
       commands:
         - cd frontend
-        - echo "Setting up environment variables for TypeScript compatibility..."
-        - echo "SKIP_PREFLIGHT_CHECK=true" >> .env
+        - echo "Setting up TypeScript compatibility..."
+        - echo "SKIP_PREFLIGHT_CHECK=true" > .env
         - echo "TSC_COMPILE_ON_ERROR=true" >> .env
-        - echo "Installing dependencies with cache..."
-        - npm ci --cache .npm --prefer-offline --legacy-peer-deps
-        - echo "Installing specific versions of critical dependencies..."
+        - echo "REACT_APP_USE_MOCK_API=true" >> .env
+        - echo "REACT_APP_AWS_REGION=us-east-1" >> .env
+        - npm ci --legacy-peer-deps
         - npm install typescript@4.9.5 fork-ts-checker-webpack-plugin@6.5.3 --legacy-peer-deps
-        - echo "Ensuring aws-exports.js exists..."
         - |
           if [ ! -f src/aws-exports.js ]; then
             echo "Creating placeholder aws-exports.js"
             cat > src/aws-exports.js << EOL
-            // This file will be replaced by AWS Amplify when you connect your app
-            // This is just a placeholder to avoid import errors
-            
             const awsmobile = {
               "aws_project_region": "us-east-1",
               "aws_cognito_identity_pool_id": "PLACEHOLDER_IDENTITY_POOL_ID",
@@ -36,14 +32,12 @@ frontend:
               "aws_user_files_s3_bucket": "PLACEHOLDER_S3_BUCKET",
               "aws_user_files_s3_bucket_region": "us-east-1"
             };
-            
             export default awsmobile;
             EOL
           fi
     build:
       commands:
         - cd frontend
-        - echo "Starting build process..."
         - SKIP_PREFLIGHT_CHECK=true npm run build
   artifacts:
     baseDirectory: frontend/build
@@ -51,5 +45,5 @@ frontend:
       - '**/*'
   cache:
     paths:
-      - frontend/.npm/**/*
+      - node_modules/**/*
       - frontend/node_modules/**/* 
