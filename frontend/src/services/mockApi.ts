@@ -1,10 +1,10 @@
-import { Lead, LeadStatus } from '../types/Lead';
+import { v4 as uuidv4 } from 'uuid';
+import { Lead, LeadStatus, LeadSource } from '../types/Lead';
 import { Document, DocumentType } from '../types/Document';
 import { Call, CallDirection, CallOutcome } from '../types/Call';
 import { Claim, ClaimStatus, ClaimType, ClaimPriority } from '../types/Claim';
-import { v4 as uuidv4 } from 'uuid';
 
-// Mock data
+// Mock Leads
 const mockLeads: Lead[] = [
   {
     id: '1',
@@ -12,11 +12,21 @@ const mockLeads: Lead[] = [
     lastName: 'Doe',
     email: 'john.doe@example.com',
     phone: '555-123-4567',
+    company: 'Acme Inc.',
     status: LeadStatus.NEW,
-    source: 'Website',
-    notes: 'Interested in filing a claim',
-    createdAt: new Date('2023-01-15').toISOString(),
-    updatedAt: new Date('2023-01-15').toISOString(),
+    source: LeadSource.WEBSITE,
+    assignedTo: 'agent1',
+    notes: 'Initial contact made via website form',
+    createdAt: '2023-05-10T14:30:00Z',
+    updatedAt: '2023-05-10T14:30:00Z',
+    tags: ['new', 'website'],
+    address: {
+      street: '123 Main St',
+      city: 'Anytown',
+      state: 'CA',
+      zipCode: '90210',
+      country: 'USA'
+    }
   },
   {
     id: '2',
@@ -24,11 +34,21 @@ const mockLeads: Lead[] = [
     lastName: 'Smith',
     email: 'jane.smith@example.com',
     phone: '555-987-6543',
-    status: LeadStatus.CONTACTED,
-    source: 'Referral',
-    notes: 'Follow up next week',
-    createdAt: new Date('2023-02-10').toISOString(),
-    updatedAt: new Date('2023-02-12').toISOString(),
+    company: 'XYZ Corp',
+    status: LeadStatus.QUALIFIED,
+    source: LeadSource.REFERRAL,
+    assignedTo: 'agent2',
+    notes: 'Referred by existing client',
+    createdAt: '2023-05-08T10:15:00Z',
+    updatedAt: '2023-05-09T16:45:00Z',
+    tags: ['qualified', 'referral'],
+    address: {
+      street: '456 Oak Ave',
+      city: 'Somewhere',
+      state: 'NY',
+      zipCode: '10001',
+      country: 'USA'
+    }
   },
   {
     id: '3',
@@ -36,288 +56,258 @@ const mockLeads: Lead[] = [
     lastName: 'Johnson',
     email: 'robert.johnson@example.com',
     phone: '555-456-7890',
-    status: LeadStatus.QUALIFIED,
-    source: 'Google',
-    notes: 'Ready to proceed with claim',
-    createdAt: new Date('2023-03-05').toISOString(),
-    updatedAt: new Date('2023-03-07').toISOString(),
-  },
+    company: 'Johnson Enterprises',
+    status: LeadStatus.CONTACTED,
+    source: LeadSource.GOOGLE,
+    assignedTo: 'agent1',
+    notes: 'Initial call made, follow-up scheduled',
+    createdAt: '2023-05-05T09:00:00Z',
+    updatedAt: '2023-05-07T11:30:00Z',
+    tags: ['contacted', 'follow-up'],
+    address: {
+      street: '789 Pine St',
+      city: 'Elsewhere',
+      state: 'TX',
+      zipCode: '75001',
+      country: 'USA'
+    }
+  }
 ];
 
+// Mock Documents
 const mockDocuments: Document[] = [
   {
     id: '1',
-    name: 'Insurance Policy',
-    type: DocumentType.POLICY,
-    fileUrl: 'https://example.com/documents/policy1.pdf',
-    uploadedBy: 'John Admin',
-    claimId: '1',
-    createdAt: new Date('2023-01-20').toISOString(),
+    leadId: '1',
+    fileName: 'tax_return_2022.pdf',
+    fileType: 'application/pdf',
+    fileSize: 2500000,
+    s3Key: 'documents/tax_return_2022.pdf',
+    documentType: DocumentType.TAX_RETURN,
+    description: '2022 Tax Return',
+    uploadedBy: 'agent1',
+    uploadedAt: '2023-05-11T10:00:00Z',
+    updatedAt: '2023-05-11T10:00:00Z',
+    isPublic: false
   },
   {
     id: '2',
-    name: 'Damage Photos',
-    type: DocumentType.PHOTO,
-    fileUrl: 'https://example.com/documents/photos1.zip',
-    uploadedBy: 'Jane Agent',
-    claimId: '1',
-    createdAt: new Date('2023-01-22').toISOString(),
+    leadId: '1',
+    fileName: 'business_license.jpg',
+    fileType: 'image/jpeg',
+    fileSize: 1200000,
+    s3Key: 'documents/business_license.jpg',
+    documentType: DocumentType.BUSINESS_LICENSE,
+    description: 'Business License',
+    uploadedBy: 'agent1',
+    uploadedAt: '2023-05-11T10:05:00Z',
+    updatedAt: '2023-05-11T10:05:00Z',
+    isPublic: true
   },
   {
     id: '3',
-    name: 'Medical Report',
-    type: DocumentType.MEDICAL,
-    fileUrl: 'https://example.com/documents/medical1.pdf',
-    uploadedBy: 'Robert Doctor',
-    claimId: '2',
-    createdAt: new Date('2023-02-15').toISOString(),
-  },
+    leadId: '2',
+    fileName: 'payroll_records_q1.xlsx',
+    fileType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    fileSize: 1800000,
+    s3Key: 'documents/payroll_records_q1.xlsx',
+    documentType: DocumentType.PAYROLL_RECORDS,
+    description: 'Q1 2023 Payroll Records',
+    uploadedBy: 'agent2',
+    uploadedAt: '2023-05-09T14:30:00Z',
+    updatedAt: '2023-05-09T14:30:00Z',
+    isPublic: false
+  }
 ];
 
+// Mock Calls
 const mockCalls: Call[] = [
   {
     id: '1',
     leadId: '1',
     agentId: 'agent1',
     direction: CallDirection.OUTBOUND,
-    outcome: CallOutcome.ANSWERED,
-    startTime: new Date('2023-01-16T10:00:00Z').toISOString(),
-    endTime: new Date('2023-01-16T10:05:00Z').toISOString(),
-    duration: 300, // 5 minutes
-    notes: 'Discussed claim details',
-    tags: ['follow-up', 'claim-discussion'],
+    outcome: CallOutcome.SCHEDULED_FOLLOW_UP,
+    startTime: '2023-05-12T09:30:00Z',
+    endTime: '2023-05-12T09:45:00Z',
+    duration: 15 * 60, // 15 minutes in seconds
+    notes: 'Discussed tax credit eligibility, client interested in proceeding',
+    tags: ['follow-up', 'interested']
   },
   {
     id: '2',
     leadId: '2',
     agentId: 'agent2',
-    direction: CallDirection.OUTBOUND,
-    outcome: CallOutcome.VOICEMAIL,
-    startTime: new Date('2023-02-20T14:30:00Z').toISOString(),
-    endTime: new Date('2023-02-20T14:31:00Z').toISOString(),
-    duration: 60,
-    notes: 'Need to discuss policy options',
-    tags: ['initial-contact'],
-  },
-  {
-    id: '3',
-    leadId: '1',
-    agentId: 'agent1',
     direction: CallDirection.INBOUND,
-    outcome: CallOutcome.ANSWERED,
-    startTime: new Date('2023-01-23T11:00:00Z').toISOString(),
-    endTime: new Date('2023-01-23T11:08:00Z').toISOString(),
-    duration: 480, // 8 minutes
-    notes: 'Follow-up on documentation',
-    tags: ['documentation', 'follow-up'],
-  },
-];
-
-const mockClaims: Claim[] = [
-  {
-    id: '1',
-    leadId: '1',
-    type: ClaimType.AUTO,
-    status: ClaimStatus.IN_PROGRESS,
-    priority: ClaimPriority.MEDIUM,
-    description: 'Car accident on Highway 101',
-    amount: 15000,
-    assignedTo: 'agent1',
-    policyNumber: 'POL-123456',
-    incidentDate: new Date('2023-01-10').toISOString(),
-    createdAt: new Date('2023-01-15').toISOString(),
-    updatedAt: new Date('2023-01-18').toISOString(),
-    timeline: [
-      {
-        id: '1',
-        claimId: '1',
-        action: 'Claim Created',
-        description: 'Claim was created in the system',
-        createdAt: new Date('2023-01-15').toISOString(),
-        createdBy: 'John Admin',
-      },
-      {
-        id: '2',
-        claimId: '1',
-        action: 'Documents Requested',
-        description: 'Requested insurance policy and photos',
-        createdAt: new Date('2023-01-16').toISOString(),
-        createdBy: 'Jane Agent',
-      },
-    ],
-  },
-  {
-    id: '2',
-    leadId: '2',
-    type: ClaimType.HEALTH,
-    status: ClaimStatus.NEW,
-    priority: ClaimPriority.HIGH,
-    description: 'Medical procedure coverage',
-    amount: 8500,
-    assignedTo: 'agent2',
-    policyNumber: 'POL-789012',
-    incidentDate: new Date('2023-02-05').toISOString(),
-    createdAt: new Date('2023-02-10').toISOString(),
-    updatedAt: new Date('2023-02-10').toISOString(),
-    timeline: [
-      {
-        id: '3',
-        claimId: '2',
-        action: 'Claim Created',
-        description: 'Claim was created in the system',
-        createdAt: new Date('2023-02-10').toISOString(),
-        createdBy: 'Jane Agent',
-      },
-    ],
+    outcome: CallOutcome.REQUESTED_INFORMATION,
+    startTime: '2023-05-11T14:00:00Z',
+    endTime: '2023-05-11T14:20:00Z',
+    duration: 20 * 60, // 20 minutes in seconds
+    notes: 'Client called with questions about documentation requirements',
+    tags: ['documentation', 'questions']
   },
   {
     id: '3',
     leadId: '3',
-    type: ClaimType.PROPERTY,
-    status: ClaimStatus.APPROVED,
-    priority: ClaimPriority.LOW,
-    description: 'Water damage from pipe leak',
-    amount: 5200,
-    assignedTo: 'agent3',
-    policyNumber: 'POL-345678',
-    incidentDate: new Date('2023-03-01').toISOString(),
-    createdAt: new Date('2023-03-05').toISOString(),
-    updatedAt: new Date('2023-03-15').toISOString(),
-    timeline: [
-      {
-        id: '4',
-        claimId: '3',
-        action: 'Claim Created',
-        description: 'Claim was created in the system',
-        createdAt: new Date('2023-03-05').toISOString(),
-        createdBy: 'Robert Agent',
-      },
-      {
-        id: '5',
-        claimId: '3',
-        action: 'Inspection Scheduled',
-        description: 'Property inspection scheduled for March 10',
-        createdAt: new Date('2023-03-07').toISOString(),
-        createdBy: 'Robert Agent',
-      },
-      {
-        id: '6',
-        claimId: '3',
-        action: 'Claim Approved',
-        description: 'Claim approved for full amount',
-        createdAt: new Date('2023-03-15').toISOString(),
-        createdBy: 'Manager',
-      },
-    ],
-  },
+    agentId: 'agent1',
+    direction: CallDirection.OUTBOUND,
+    outcome: CallOutcome.LEFT_VOICEMAIL,
+    startTime: '2023-05-10T11:15:00Z',
+    endTime: '2023-05-10T11:17:00Z',
+    duration: 2 * 60, // 2 minutes in seconds
+    notes: 'Left voicemail introducing our services and requesting callback',
+    tags: ['voicemail', 'introduction']
+  }
 ];
 
-// Mock firm performance data
-const mockFirmPerformance = {
-  totalClaims: 125,
-  approvedClaims: 87,
-  deniedClaims: 23,
-  pendingClaims: 15,
-  totalRevenue: 1250000,
-  averageClaimAmount: 14367,
-  successRate: 0.7,
-  monthlyStats: [
-    { month: 'Jan', claims: 12, revenue: 120000 },
-    { month: 'Feb', claims: 15, revenue: 145000 },
-    { month: 'Mar', claims: 18, revenue: 180000 },
-    { month: 'Apr', claims: 14, revenue: 135000 },
-    { month: 'May', claims: 16, revenue: 155000 },
-    { month: 'Jun', claims: 20, revenue: 195000 },
-    { month: 'Jul', claims: 17, revenue: 165000 },
-    { month: 'Aug', claims: 13, revenue: 125000 },
-    { month: 'Sep', claims: 15, revenue: 145000 },
-    { month: 'Oct', claims: 19, revenue: 185000 },
-    { month: 'Nov', claims: 22, revenue: 215000 },
-    { month: 'Dec', claims: 18, revenue: 175000 },
-  ],
-};
-
-// Mock CPA performance data
-const mockCPAPerformance = [
+// Mock Claims
+const mockClaims: Claim[] = [
   {
     id: '1',
-    name: 'John Smith',
-    totalClaims: 45,
-    approvedClaims: 32,
-    deniedClaims: 8,
-    pendingClaims: 5,
-    totalRevenue: 450000,
-    successRate: 0.71,
-    averageClaimAmount: 14062.5,
-    monthlyStats: [
-      { month: 'Jan', claims: 4, revenue: 40000 },
-      { month: 'Feb', claims: 5, revenue: 48000 },
-      { month: 'Mar', claims: 6, revenue: 60000 },
-      { month: 'Apr', claims: 4, revenue: 38000 },
-      { month: 'May', claims: 5, revenue: 50000 },
-      { month: 'Jun', claims: 7, revenue: 68000 },
-      { month: 'Jul', claims: 6, revenue: 58000 },
-      { month: 'Aug', claims: 4, revenue: 42000 },
-      { month: 'Sep', claims: 5, revenue: 48000 },
-      { month: 'Oct', claims: 6, revenue: 62000 },
-      { month: 'Nov', claims: 8, revenue: 78000 },
-      { month: 'Dec', claims: 6, revenue: 60000 },
-    ],
+    leadId: '1',
+    firmId: 'firm1',
+    cpaId: 'cpa1',
+    claimNumber: 'ERC-2023-001',
+    claimType: ClaimType.EMPLOYEE_RETENTION_CREDIT,
+    status: ClaimStatus.SUBMITTED,
+    priority: ClaimPriority.MEDIUM,
+    submissionDate: '2023-05-15T00:00:00Z',
+    taxYear: 2022,
+    claimAmount: 125000,
+    notes: 'Complete application with all required documentation',
+    assignedAgentId: 'agent1',
+    lastUpdated: '2023-05-15T14:30:00Z',
+    expectedCompletionDate: '2023-07-15T00:00:00Z',
+    documents: ['1', '2'],
+    tags: ['complete', 'priority'],
+    clientBusinessName: 'Acme Inc.',
+    clientEIN: '12-3456789',
+    clientContactName: 'John Doe',
+    clientContactEmail: 'john.doe@example.com',
+    clientContactPhone: '555-123-4567'
   },
   {
     id: '2',
-    name: 'Jane Doe',
-    totalClaims: 38,
-    approvedClaims: 29,
-    deniedClaims: 6,
-    pendingClaims: 3,
-    totalRevenue: 380000,
-    successRate: 0.76,
-    averageClaimAmount: 13103.45,
-    monthlyStats: [
-      { month: 'Jan', claims: 3, revenue: 32000 },
-      { month: 'Feb', claims: 4, revenue: 38000 },
-      { month: 'Mar', claims: 5, revenue: 48000 },
-      { month: 'Apr', claims: 4, revenue: 40000 },
-      { month: 'May', claims: 4, revenue: 42000 },
-      { month: 'Jun', claims: 6, revenue: 58000 },
-      { month: 'Jul', claims: 5, revenue: 50000 },
-      { month: 'Aug', claims: 3, revenue: 32000 },
-      { month: 'Sep', claims: 4, revenue: 40000 },
-      { month: 'Oct', claims: 5, revenue: 52000 },
-      { month: 'Nov', claims: 6, revenue: 60000 },
-      { month: 'Dec', claims: 5, revenue: 48000 },
-    ],
+    leadId: '2',
+    firmId: 'firm1',
+    cpaId: 'cpa2',
+    claimNumber: 'RD-2023-001',
+    claimType: ClaimType.RESEARCH_AND_DEVELOPMENT,
+    status: ClaimStatus.UNDER_REVIEW,
+    priority: ClaimPriority.HIGH,
+    submissionDate: '2023-05-10T00:00:00Z',
+    taxYear: 2022,
+    claimAmount: 250000,
+    notes: 'Innovative software development project',
+    assignedAgentId: 'agent2',
+    lastUpdated: '2023-05-16T09:45:00Z',
+    expectedCompletionDate: '2023-06-30T00:00:00Z',
+    documents: ['3'],
+    tags: ['tech', 'software'],
+    clientBusinessName: 'XYZ Corp',
+    clientEIN: '98-7654321',
+    clientContactName: 'Jane Smith',
+    clientContactEmail: 'jane.smith@example.com',
+    clientContactPhone: '555-987-6543'
   },
   {
     id: '3',
-    name: 'Robert Johnson',
-    totalClaims: 42,
-    approvedClaims: 26,
-    deniedClaims: 9,
-    pendingClaims: 7,
-    totalRevenue: 420000,
-    successRate: 0.62,
-    averageClaimAmount: 16153.85,
+    leadId: '3',
+    firmId: 'firm2',
+    cpaId: 'cpa1',
+    claimNumber: 'WOTC-2023-001',
+    claimType: ClaimType.WORK_OPPORTUNITY_TAX_CREDIT,
+    status: ClaimStatus.DRAFT,
+    priority: ClaimPriority.LOW,
+    submissionDate: '2023-05-18T00:00:00Z',
+    taxYear: 2023,
+    claimAmount: 75000,
+    notes: 'Hiring program for veterans',
+    assignedAgentId: 'agent1',
+    lastUpdated: '2023-05-18T11:20:00Z',
+    expectedCompletionDate: '2023-08-01T00:00:00Z',
+    tags: ['veterans', 'hiring'],
+    clientBusinessName: 'Johnson Enterprises',
+    clientEIN: '45-6789123',
+    clientContactName: 'Robert Johnson',
+    clientContactEmail: 'robert.johnson@example.com',
+    clientContactPhone: '555-456-7890'
+  }
+];
+
+// Mock Firm Performance
+const mockFirmPerformance = {
+  id: 'firm1',
+  name: 'Smith & Associates',
+  totalClaims: 150,
+  approvedClaims: 120,
+  rejectedClaims: 15,
+  pendingClaims: 15,
+  totalClaimValue: 7500000,
+  approvedClaimValue: 6000000,
+  successRate: 80,
+  averageProcessingTime: 45, // days
+  clientSatisfactionScore: 4.8,
+  monthlyStats: [
+    { month: '2023-01', claims: 12, approved: 10, value: 600000 },
+    { month: '2023-02', claims: 15, approved: 12, value: 750000 },
+    { month: '2023-03', claims: 18, approved: 15, value: 900000 },
+    { month: '2023-04', claims: 20, approved: 16, value: 1000000 },
+    { month: '2023-05', claims: 22, approved: 18, value: 1100000 }
+  ],
+  topPerformingAgents: [
+    { id: 'agent1', name: 'Alice Johnson', claims: 45, successRate: 85 },
+    { id: 'agent2', name: 'Bob Smith', claims: 40, successRate: 82 },
+    { id: 'agent3', name: 'Carol Davis', claims: 35, successRate: 78 }
+  ]
+};
+
+// Mock CPA Performance
+const mockCPAPerformance = [
+  {
+    id: 'cpa1',
+    name: 'David Wilson',
+    totalClaims: 75,
+    approvedClaims: 65,
+    rejectedClaims: 5,
+    pendingClaims: 5,
+    totalClaimValue: 3750000,
+    approvedClaimValue: 3250000,
+    successRate: 86.7,
+    averageProcessingTime: 40, // days
+    clientSatisfactionScore: 4.9,
     monthlyStats: [
-      { month: 'Jan', claims: 5, revenue: 48000 },
-      { month: 'Feb', claims: 6, revenue: 59000 },
-      { month: 'Mar', claims: 7, revenue: 72000 },
-      { month: 'Apr', claims: 6, revenue: 57000 },
-      { month: 'May', claims: 7, revenue: 63000 },
-      { month: 'Jun', claims: 7, revenue: 69000 },
-      { month: 'Jul', claims: 6, revenue: 57000 },
-      { month: 'Aug', claims: 6, revenue: 51000 },
-      { month: 'Sep', claims: 6, revenue: 57000 },
-      { month: 'Oct', claims: 8, revenue: 71000 },
-      { month: 'Nov', claims: 8, revenue: 77000 },
-      { month: 'Dec', claims: 7, revenue: 67000 },
-    ],
+      { month: '2023-01', claims: 6, approved: 5, value: 300000 },
+      { month: '2023-02', claims: 8, approved: 7, value: 400000 },
+      { month: '2023-03', claims: 9, approved: 8, value: 450000 },
+      { month: '2023-04', claims: 10, approved: 9, value: 500000 },
+      { month: '2023-05', claims: 12, approved: 10, value: 600000 }
+    ]
   },
+  {
+    id: 'cpa2',
+    name: 'Emily Brown',
+    totalClaims: 60,
+    approvedClaims: 48,
+    rejectedClaims: 7,
+    pendingClaims: 5,
+    totalClaimValue: 3000000,
+    approvedClaimValue: 2400000,
+    successRate: 80,
+    averageProcessingTime: 42, // days
+    clientSatisfactionScore: 4.7,
+    monthlyStats: [
+      { month: '2023-01', claims: 5, approved: 4, value: 250000 },
+      { month: '2023-02', claims: 6, approved: 5, value: 300000 },
+      { month: '2023-03', claims: 7, approved: 6, value: 350000 },
+      { month: '2023-04', claims: 8, approved: 6, value: 400000 },
+      { month: '2023-05', claims: 9, approved: 7, value: 450000 }
+    ]
+  }
 ];
 
 // Mock API methods
-export const mockApi = {
+const mockApi = {
   // Lead methods
   getLeads: async (): Promise<Lead[]> => {
     return [...mockLeads];
@@ -328,32 +318,32 @@ export const mockApi = {
     return lead ? { ...lead } : null;
   },
   
-  createLead: async (lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Promise<Lead> => {
+  createLead: async (data: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Promise<Lead> => {
     const newLead: Lead = {
-      ...lead,
+      ...data,
       id: uuidv4(),
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
     mockLeads.push(newLead);
     return { ...newLead };
   },
   
-  updateLead: async (id: string, lead: Partial<Lead>): Promise<Lead | null> => {
-    const index = mockLeads.findIndex(l => l.id === id);
+  updateLead: async (id: string, data: Partial<Lead>): Promise<Lead | null> => {
+    const index = mockLeads.findIndex(lead => lead.id === id);
     if (index === -1) return null;
     
-    mockLeads[index] = {
+    const updatedLead = {
       ...mockLeads[index],
-      ...lead,
-      updatedAt: new Date().toISOString(),
+      ...data,
+      updatedAt: new Date().toISOString()
     };
-    
-    return { ...mockLeads[index] };
+    mockLeads[index] = updatedLead;
+    return { ...updatedLead };
   },
   
   deleteLead: async (id: string): Promise<boolean> => {
-    const index = mockLeads.findIndex(l => l.id === id);
+    const index = mockLeads.findIndex(lead => lead.id === id);
     if (index === -1) return false;
     
     mockLeads.splice(index, 1);
@@ -365,22 +355,39 @@ export const mockApi = {
     return [...mockDocuments];
   },
   
-  getDocumentsByClaimId: async (claimId: string): Promise<Document[]> => {
-    return mockDocuments.filter(doc => doc.claimId === claimId).map(doc => ({ ...doc }));
+  getDocumentById: async (id: string): Promise<Document | null> => {
+    const document = mockDocuments.find(doc => doc.id === id);
+    return document ? { ...document } : null;
   },
   
-  uploadDocument: async (document: Omit<Document, 'id' | 'createdAt'>): Promise<Document> => {
+  getDocumentsByLeadId: async (leadId: string): Promise<Document[]> => {
+    return mockDocuments.filter(doc => doc.leadId === leadId).map(doc => ({ ...doc }));
+  },
+  
+  uploadDocument: async (data: Omit<Document, 'id'>): Promise<Document> => {
     const newDocument: Document = {
-      ...document,
-      id: uuidv4(),
-      createdAt: new Date().toISOString(),
+      ...data,
+      id: uuidv4()
     };
     mockDocuments.push(newDocument);
     return { ...newDocument };
   },
   
+  updateDocument: async (id: string, data: Partial<Document>): Promise<Document | null> => {
+    const index = mockDocuments.findIndex(doc => doc.id === id);
+    if (index === -1) return null;
+    
+    const updatedDocument = {
+      ...mockDocuments[index],
+      ...data,
+      updatedAt: new Date().toISOString()
+    };
+    mockDocuments[index] = updatedDocument;
+    return { ...updatedDocument };
+  },
+  
   deleteDocument: async (id: string): Promise<boolean> => {
-    const index = mockDocuments.findIndex(d => d.id === id);
+    const index = mockDocuments.findIndex(doc => doc.id === id);
     if (index === -1) return false;
     
     mockDocuments.splice(index, 1);
@@ -392,33 +399,38 @@ export const mockApi = {
     return [...mockCalls];
   },
   
+  getCallById: async (id: string): Promise<Call | null> => {
+    const call = mockCalls.find(call => call.id === id);
+    return call ? { ...call } : null;
+  },
+  
   getCallsByLeadId: async (leadId: string): Promise<Call[]> => {
     return mockCalls.filter(call => call.leadId === leadId).map(call => ({ ...call }));
   },
   
-  createCall: async (call: Omit<Call, 'id'>): Promise<Call> => {
+  createCall: async (data: Omit<Call, 'id'>): Promise<Call> => {
     const newCall: Call = {
-      ...call,
-      id: uuidv4(),
+      ...data,
+      id: uuidv4()
     };
     mockCalls.push(newCall);
     return { ...newCall };
   },
   
-  updateCall: async (id: string, call: Partial<Call>): Promise<Call | null> => {
-    const index = mockCalls.findIndex(c => c.id === id);
+  updateCall: async (id: string, data: Partial<Call>): Promise<Call | null> => {
+    const index = mockCalls.findIndex(call => call.id === id);
     if (index === -1) return null;
     
-    mockCalls[index] = {
+    const updatedCall = {
       ...mockCalls[index],
-      ...call,
+      ...data
     };
-    
-    return { ...mockCalls[index] };
+    mockCalls[index] = updatedCall;
+    return { ...updatedCall };
   },
   
   deleteCall: async (id: string): Promise<boolean> => {
-    const index = mockCalls.findIndex(c => c.id === id);
+    const index = mockCalls.findIndex(call => call.id === id);
     if (index === -1) return false;
     
     mockCalls.splice(index, 1);
@@ -439,102 +451,77 @@ export const mockApi = {
     return mockClaims.filter(claim => claim.leadId === leadId).map(claim => ({ ...claim }));
   },
   
-  createClaim: async (claim: Omit<Claim, 'id' | 'createdAt' | 'updatedAt' | 'timeline'>): Promise<Claim> => {
+  createClaim: async (data: Omit<Claim, 'id'>): Promise<Claim> => {
     const newClaim: Claim = {
-      ...claim,
+      ...data,
       id: uuidv4(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      timeline: [
-        {
-          id: uuidv4(),
-          claimId: '',  // Will be updated after ID is assigned
-          action: 'Claim Created',
-          description: 'Claim was created in the system',
-          createdAt: new Date().toISOString(),
-          createdBy: 'System',
-        }
-      ],
+      lastUpdated: new Date().toISOString()
     };
-    
-    // Update the claimId in the timeline
-    newClaim.timeline[0].claimId = newClaim.id;
-    
     mockClaims.push(newClaim);
     return { ...newClaim };
   },
   
-  updateClaim: async (id: string, claim: Partial<Claim>): Promise<Claim | null> => {
-    const index = mockClaims.findIndex(c => c.id === id);
+  updateClaim: async (id: string, data: Partial<Claim>): Promise<Claim | null> => {
+    const index = mockClaims.findIndex(claim => claim.id === id);
     if (index === -1) return null;
     
-    // Create a timeline entry for the update if not provided
-    if (!claim.timeline && mockClaims[index].status !== claim.status && claim.status) {
-      const timelineEntry = {
-        id: uuidv4(),
-        claimId: id,
-        action: `Status Changed to ${claim.status}`,
-        description: `Claim status was updated to ${claim.status}`,
-        createdAt: new Date().toISOString(),
-        createdBy: 'System',
-      };
-      
-      mockClaims[index] = {
-        ...mockClaims[index],
-        ...claim,
-        updatedAt: new Date().toISOString(),
-        timeline: [...mockClaims[index].timeline, timelineEntry],
-      };
-    } else {
-      mockClaims[index] = {
-        ...mockClaims[index],
-        ...claim,
-        updatedAt: new Date().toISOString(),
-      };
-    }
-    
-    return { ...mockClaims[index] };
-  },
-  
-  addClaimTimelineEntry: async (claimId: string, entry: Omit<Claim['timeline'][0], 'id' | 'claimId' | 'createdAt'>): Promise<Claim | null> => {
-    const index = mockClaims.findIndex(c => c.id === claimId);
-    if (index === -1) return null;
-    
-    const timelineEntry = {
-      id: uuidv4(),
-      claimId,
-      ...entry,
-      createdAt: new Date().toISOString(),
+    const updatedClaim = {
+      ...mockClaims[index],
+      ...data,
+      lastUpdated: new Date().toISOString()
     };
-    
-    mockClaims[index].timeline.push(timelineEntry);
-    mockClaims[index].updatedAt = new Date().toISOString();
-    
-    return { ...mockClaims[index] };
+    mockClaims[index] = updatedClaim;
+    return { ...updatedClaim };
   },
   
   deleteClaim: async (id: string): Promise<boolean> => {
-    const index = mockClaims.findIndex(c => c.id === id);
+    const index = mockClaims.findIndex(claim => claim.id === id);
     if (index === -1) return false;
     
     mockClaims.splice(index, 1);
     return true;
   },
   
-  // Firm performance methods
-  getFirmPerformance: async () => {
+  // Timeline methods for claims (not in the type but useful for the mock)
+  addClaimTimelineEntry: async (claimId: string, entry: { action: string; description: string; createdBy: string }): Promise<any> => {
+    const claim = await mockApi.getClaimById(claimId);
+    if (!claim) return null;
+    
+    // @ts-ignore - we're adding a timeline property that might not be in the type
+    if (!claim.timeline) claim.timeline = [];
+    
+    const timelineEntry = {
+      id: uuidv4(),
+      claimId,
+      eventType: entry.action,
+      description: entry.description,
+      timestamp: new Date().toISOString(),
+      userId: entry.createdBy,
+      userName: entry.createdBy === 'agent1' ? 'Alice Johnson' : 'Bob Smith'
+    };
+    
+    // @ts-ignore - timeline property might not exist in the type
+    claim.timeline.push(timelineEntry);
+    
+    // Update the claim in the mock data
+    await mockApi.updateClaim(claimId, claim);
+    
+    return timelineEntry;
+  },
+  
+  // Performance methods
+  getFirmPerformance: async (): Promise<typeof mockFirmPerformance> => {
     return { ...mockFirmPerformance };
   },
   
-  // CPA performance methods
-  getCPAPerformance: async () => {
+  getCPAPerformance: async (): Promise<typeof mockCPAPerformance> => {
     return [...mockCPAPerformance];
   },
   
-  getCPAPerformanceById: async (id: string) => {
-    const cpa = mockCPAPerformance.find(cpa => cpa.id === id);
-    return cpa ? { ...cpa } : null;
-  },
+  getCPAPerformanceById: async (id: string): Promise<typeof mockCPAPerformance[0] | null> => {
+    const cpaPerformance = mockCPAPerformance.find(cpa => cpa.id === id);
+    return cpaPerformance ? { ...cpaPerformance } : null;
+  }
 };
 
 export default mockApi; 
